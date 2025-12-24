@@ -79,7 +79,7 @@ resource "aws_ecs_service" "this" {
     }
   }
   propagate_tags      = var.propagate_tags
-  scheduling_strategy = "REPLICA"
+  scheduling_strategy = var.scheduling_strategy
 
   tags            = merge(var.tags, var.service_tags)
   task_definition = local.task_definition
