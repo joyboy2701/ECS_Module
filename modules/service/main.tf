@@ -26,15 +26,15 @@ resource "aws_ecs_service" "this" {
 
   availability_zone_rebalancing = var.availability_zone_rebalancing
 
-  dynamic "capacity_provider_strategy" {
-    for_each = var.capacity_provider_strategy != null ? var.capacity_provider_strategy : {}
+  # dynamic "capacity_provider_strategy" {
+  #   for_each = var.capacity_provider_strategy != null ? var.capacity_provider_strategy : {}
 
-    content {
-      base              = capacity_provider_strategy.value.base
-      capacity_provider = capacity_provider_strategy.value.capacity_provider
-      weight            = capacity_provider_strategy.value.weight
-    }
-  }
+  #   content {
+  #     base              = capacity_provider_strategy.value.base
+  #     capacity_provider = capacity_provider_strategy.value.capacity_provider
+  #     weight            = capacity_provider_strategy.value.weight
+  #   }
+  # }
 
   cluster = var.cluster_arn
 

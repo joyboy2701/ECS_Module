@@ -104,27 +104,6 @@ variable "cluster" {
     cloudwatch_log_group_kms_key_id        = optional(string)
     cloudwatch_log_group_class             = optional(string)
     cloudwatch_log_group_tags              = optional(map(string))
-
-    # Capacity Providers
-    default_capacity_provider_strategy = optional(map(object({
-      base              = optional(number)
-      capacity_provider = string
-      weight            = optional(number)
-    })))
-    autoscaling_capacity_providers = optional(map(object({
-      auto_scaling_group_arn = string
-      managed_draining       = string
-      managed_scaling = optional(object({
-        status                    = string
-        target_capacity           = number
-        minimum_scaling_step_size = number
-        maximum_scaling_step_size = number
-        instance_warmup_period    = number
-      }))
-      managed_termination_protection = string
-      name                           = string
-      tags                           = map(string)
-    })))
   })
 }
 variable "service" {

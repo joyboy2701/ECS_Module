@@ -122,14 +122,6 @@ cluster = {
   cloudwatch_log_group_kms_key_id        = ""
   cloudwatch_log_group_class             = "STANDARD"
   cloudwatch_log_group_tags              = { Environment = "dev" }
-
-  default_capacity_provider_strategy = {
-    fargate = {
-      base              = 0
-      capacity_provider = "FARGATE"
-      weight            = 1
-    }
-  }
 }
 
 service = {

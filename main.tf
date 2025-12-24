@@ -86,9 +86,6 @@ module "ecs_cluster" {
   cloudwatch_log_group_class             = var.cluster.cloudwatch_log_group_class
   cloudwatch_log_group_tags              = var.cluster.cloudwatch_log_group_tags
 
-  # Capacity Providers
-  default_capacity_provider_strategy = var.cluster.default_capacity_provider_strategy
-  autoscaling_capacity_providers     = var.cluster.autoscaling_capacity_providers
 }
 
 module "ecs_service" {
