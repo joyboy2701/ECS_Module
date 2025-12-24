@@ -1,4 +1,4 @@
-# ECS Terraform Monorepo
+# ECS Terraform 
 
 This repository provisions a **dynamic Amazon ECS platform** supporting
 **both Fargate and EC2 launch types**. It is modular, environment-aware,
