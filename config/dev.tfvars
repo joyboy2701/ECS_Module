@@ -115,7 +115,6 @@ cluster = {
       value = "enabled"
     }
   ]
-
   create_cloudwatch_log_group            = true
   cloudwatch_log_group_name              = "/aws/ecs/dev-ecs-cluster"
   cloudwatch_log_group_retention_in_days = 14
@@ -204,9 +203,6 @@ service = {
         create_cloudwatch_log_group = false
       }
     }
-
-    volume = {}
-
     ephemeral_storage = { size_in_gib = 21 }
 
     tags = { Environment = "dev" }
