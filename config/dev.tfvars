@@ -16,41 +16,6 @@ vpc = {
   dns_host_name           = true
 
 }
-ec2_capacity = {
-  instance_type                  = "t2.medium"
-  desired_capacity               = 1
-  min_size                       = 1
-  max_size                       = 3
-  managed_termination_protection = "DISABLED"
-  maximum_scaling_step_size      = 1000
-  minimum_scaling_step_size      = 1
-  target_capacity                = 100
-  managed_scaling_status         = "ENABLED"
-  sg_name                        = "wordpress-ec2-capacity-sg"
-  security_group_rules = [
-    {
-      type        = "ingress"
-      description = "HTTP from internet"
-      from_port   = 80
-      to_port     = 80
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    },
-    {
-      type        = "egress"
-      description = "Allow all outbound"
-      from_port   = 0
-      to_port     = 0
-      protocol    = "-1"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  ]
-  tags = {
-    Environment = "production"
-    Application = "myapp"
-    ManagedBy   = "terraform"
-  }
-}
 
 load_balancer = {
   name                            = "my-alb"
