@@ -16,10 +16,6 @@ variable "tags" {
   default     = {}
 }
 
-################################################################################
-# Cluster
-################################################################################
-
 variable "configuration" {
   description = "The execute command configuration for the cluster"
   type = object({
@@ -69,10 +65,6 @@ variable "setting" {
     }
   ]
 }
-
-################################################################################
-# CloudWatch Log Group
-################################################################################
 
 variable "create_cloudwatch_log_group" {
   description = "Determines whether a log group is created by this module for the cluster logs. If not, AWS will automatically create one if logging is enabled"

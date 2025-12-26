@@ -182,3 +182,98 @@ variable "service" {
     tags = optional(map(string))
   }))
 }
+
+
+
+
+
+variable "task_definition" {
+  description = "Configuration for the ECS task definition"
+  type = map(object({
+    # Core task definition settings
+    create_task_definition = optional(bool, true)
+    cpu                    = optional(string)
+    memory                 = optional(string)
+    family                 = optional(string)
+    network_mode           = optional(string, "awsvpc")
+    requires_compatibilities = optional(list(string), ["FARGATE"])
+    launch_type            = optional(string, "FARGATE")
+    enable_fault_injection = optional(bool, false)
+    skip_destroy           = optional(bool, false)
+    track_latest           = optional(bool, false)
+    current_region         = optional(string)
+    
+    # Container definitions
+    container_definitions = optional(map(object({
+      create                            = optional(bool, true)
+      name                              = optional(string)
+      image                             = string
+      cpu                               = optional(number)
+      memory                            = optional(number)
+      memoryReservation                 = optional(number)
+      essential                         = optional(bool, true)
+      command                           = optional(list(string))
+      entrypoint                        = optional(list(string))
+      environment                       = optional(list(map(string)))
+      portMappings = optional(list(object({
+        containerPort = number
+        hostPort      = optional(number)
+        protocol      = optional(string)
+      })))
+      healthCheck = optional(object({
+        command     = list(string)
+        interval    = number
+        timeout     = number
+        retries     = number
+        startPeriod = optional(number)
+      }))
+      
+      # CloudWatch Logs Configuration
+      enable_cloudwatch_logging              = optional(bool, false)
+      create_cloudwatch_log_group            = optional(bool, false)
+      cloudwatch_log_group_name              = optional(string)
+      cloudwatch_log_group_use_name_prefix   = optional(bool, false)
+      cloudwatch_log_group_class             = optional(string, "STANDARD")
+      cloudwatch_log_group_retention_in_days = optional(number, 30)
+      cloudwatch_log_group_kms_key_id        = optional(string)
+      
+      # Other log configurations
+      logConfiguration = optional(any)
+    })), {})
+    
+    # IAM role settings
+    create_task_execution_role      = optional(bool, true)
+    task_execution_role_name        = optional(string, "ecs-task-execution-role")
+    task_execution_role_description = optional(string, "ECS Task Execution Role")
+    external_task_execution_role_arn = optional(string)
+    task_execution_custom_policies  = optional(string)
+    task_execution_role_tags        = optional(map(string), {})
+    
+    # Storage
+    ephemeral_storage = optional(object({
+      size_in_gib = number
+    }))
+    
+    volumes = optional(map(object({
+      configure_at_launch = optional(bool)
+      host_path           = optional(string)
+      name                = optional(string)
+      efs_volume_configuration = optional(object({
+        file_system_id          = string
+        root_directory          = optional(string)
+        transit_encryption      = optional(string)
+        transit_encryption_port = optional(number)
+        authorization_config = optional(object({
+          access_point_id = string
+          iam             = optional(string)
+        }))
+      }))
+    })), {})
+    
+    # Tags
+    tags      = optional(map(string), {})
+    task_tags = optional(map(string), {})
+  }))
+  
+  default = null
+}

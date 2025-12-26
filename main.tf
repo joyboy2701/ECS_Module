@@ -1,5 +1,4 @@
 module "vpc" {
-
   source                  = "./modules/vpc"
   vpc_name                = var.vpc.vpc_name
   vpc_cidr                = var.vpc.vpc_cidr
@@ -15,7 +14,6 @@ module "vpc" {
   dns_host_name           = var.vpc.dns_host_name
 }
 module "ecs_ec2_capacity" {
-  # count = module.ecs_service["wordpress"].launch_type == "EC2" ? 1 : 0
   count = local.enable_ec2_capacity ? 1 : 0
 
   source                         = "./modules/ec2_capacity"
@@ -68,21 +66,16 @@ module "load_balancer" {
 module "ecs_cluster" {
   source = "./modules/cluster"
 
-  # Cluster basic
   create = true
   name   = var.cluster.name
   region = var.cluster.region
   tags   = var.cluster.tags
-
-  # Configuration
   configuration = var.cluster.configuration
   setting       = var.cluster.setting
-
-  # CloudWatch Log Group
   create_cloudwatch_log_group            = var.cluster.create_cloudwatch_log_group
   cloudwatch_log_group_name              = var.cluster.cloudwatch_log_group_name
   cloudwatch_log_group_retention_in_days = var.cluster.cloudwatch_log_group_retention_in_days
-  cloudwatch_log_group_kms_key_id        = var.cluster.cloudwatch_log_group_kms_key_id
+  cloudwatch_log_group_kms_key_id        = data.aws_kms_key.wordpress.arn
   cloudwatch_log_group_class             = var.cluster.cloudwatch_log_group_class
   cloudwatch_log_group_tags              = var.cluster.cloudwatch_log_group_tags
 
@@ -93,12 +86,10 @@ module "ecs_service" {
 
   for_each = var.service
 
-  # Module control
   create                         = each.value.create
   create_service                 = each.value.create_service
   ignore_task_definition_changes = each.value.ignore_task_definition_changes
 
-  # Cluster & Service 
   cluster_arn                        = module.ecs_cluster.arn
   name                               = each.value.name
   desired_count                      = each.value.desired_count
@@ -112,12 +103,18 @@ module "ecs_service" {
   service_tags                       = each.value.service_tags
   triggers                           = each.value.triggers
   wait_for_steady_state              = each.value.wait_for_steady_state
-  enable_fault_injection             = each.value.enable_fault_injection
 
   # Networking
   assign_public_ip   = each.value.assign_public_ip
   subnet_ids         = module.vpc.private_subnet_ids
-  security_group_ids = each.value.security_group_ids
+  vpc_id = module.vpc.vpc_id
+
+  create_security_group = each.value.create_security_group
+  security_group_name   = each.value.security_group_name
+  security_group_egress_rules = each.value.security_group_egress_rules
+  security_group_ingress_rules = each.value.security_group_ingress_rules
+  security_group_tags   = each.value.security_group_tags
+
 
   # Load Balancer
   load_balancer = {
@@ -129,35 +126,39 @@ module "ecs_service" {
     }
   }
 
-  # Task Definition
-  create_task_definition   = each.value.create_task_definition
-  task_definition_arn      = each.value.task_definition_arn
-  family                   = each.value.family
-  cpu                      = each.value.cpu
-  memory                   = each.value.memory
-  network_mode             = each.value.network_mode
-  requires_compatibilities = each.value.requires_compatibilities
-  track_latest             = each.value.track_latest
-  skip_destroy             = each.value.skip_destroy
-
-  # IAM
-  task_exec_iam_role_arn  = each.value.task_exec_iam_role_arn
-  task_exec_iam_role_name = each.value.task_exec_iam_role_name
-
-  # Security Group
-  create_security_group          = each.value.create_security_group
-  vpc_id                         = module.vpc.vpc_id
-  security_group_name            = each.value.security_group_name
-  security_group_use_name_prefix = each.value.security_group_use_name_prefix
-  security_group_description     = each.value.security_group_description
-  security_group_ingress_rules   = each.value.security_group_ingress_rules
-  security_group_egress_rules    = each.value.security_group_egress_rules
-  security_group_tags            = each.value.security_group_tags
-
-  # Containers & Volumes
-  container_definitions = each.value.container_definitions
-  volume                = each.value.volume
-  ephemeral_storage     = each.value.ephemeral_storage
+  task_definition_arn = module.task_definition[each.key].task_definition_arn
 
   tags = each.value.tags
+}
+
+module "task_definition" {
+  for_each = local.task_definition_configs
+  source   = "./modules/task-definition"
+
+  create_task_definition           = each.value.create_task_definition
+  cpu                              = each.value.cpu
+  memory                           = each.value.memory
+  family                           = coalesce(each.value.family, each.key)
+  network_mode                     = each.value.network_mode
+  requires_compatibilities         = each.value.requires_compatibilities
+  launch_type                      = each.value.launch_type
+  enable_fault_injection           = each.value.enable_fault_injection
+  skip_destroy                     = each.value.skip_destroy
+  track_latest                     = each.value.track_latest
+  current_region = data.aws_region.current.region
+
+  container_definitions            = each.value.container_definitions
+
+  create_task_execution_role       = each.value.create_task_execution_role
+  task_execution_role_name         = each.value.task_execution_role_name
+  task_execution_role_description  = each.value.task_execution_role_description
+  external_task_execution_role_arn = each.value.external_task_execution_role_arn
+  task_execution_custom_policies   = each.value.task_execution_custom_policies
+  task_execution_role_tags         = each.value.task_execution_role_tags
+
+  ephemeral_storage                = each.value.ephemeral_storage
+  volumes                          = each.value.volumes
+
+  tags       = each.value.tags
+  task_tags = each.value.task_tags
 }

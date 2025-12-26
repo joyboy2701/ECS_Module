@@ -20,8 +20,6 @@ resource "aws_ecs_cluster" "this" {
 
   name = var.name
 
-
-
   dynamic "setting" {
     for_each = var.setting != null ? var.setting : []
 
@@ -32,14 +30,6 @@ resource "aws_ecs_cluster" "this" {
   }
 
   tags = var.tags
-}
-
-################################################################################
-# CloudWatch Log Group
-################################################################################
-
-locals {
-  log_group_name = try(coalesce(var.cloudwatch_log_group_name, "/aws/ecs/${var.name}"), "")
 }
 
 resource "aws_cloudwatch_log_group" "this" {

@@ -12,11 +12,6 @@ variable "subnet_ids" {
   description = "Subnets to attach the ALB to"
 }
 
-# variable "security_group_ids" {
-#   type        = list(string)
-#   description = "Security groups for the ALB"
-# }
-
 variable "target_port" {
   type        = number
   description = "Port where ALB will forward traffic (ECS container port)"
@@ -25,17 +20,14 @@ variable "target_port" {
 variable "protocol" {
   type        = string
   description = "ALB listener protocol"
-  default     = "TCP" # For MySQL internal traffic. Use HTTP/HTTPS for web services
 }
 variable "load_balancer_type" {
   type        = string
   description = "load balancer type"
-  default     = "network" # For MySQL internal traffic. Use HTTP/HTTPS for web services
 }
 variable "target_type" {
   type        = string
   description = "target  type"
-  default     = "ip" # For MySQL internal traffic. Use HTTP/HTTPS for web services
 }
 
 variable "internal" {
@@ -50,7 +42,6 @@ variable "enable_deletion_protection" {
 variable "idle_timeout" {
   type        = number
   description = "Timeout for Load Balancer"
-  default     = 400
 }
 variable "healthcheck_healthy_threshold" {
   type = number

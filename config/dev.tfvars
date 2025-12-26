@@ -67,13 +67,6 @@ cluster = {
     Environment = "dev"
     Project     = "wordpress-app"
   }
-
-  configuration = {
-    managed_storage_configuration = {
-      kms_key_id = "arn:aws:kms:us-east-1:569023477847:key/d33f023a-8e2f-47a5-8fa7-22adf1f65d13"
-    }
-  }
-
   setting = [
     {
       name  = "containerInsights"
@@ -90,20 +83,18 @@ cluster = {
 
 service = {
   wordpress = {
-    create                             = true
-    create_service                     = true
-    name                               = "wordpress-service"
-    desired_count                      = 1
+    create         = true
+    create_service = true
+    name           = "wordpress-service"
+    desired_count  = 1
+    launch_type    = "FARGATE"
+
+    platform_version                   = "LATEST"
     deployment_maximum_percent         = 200
     deployment_minimum_healthy_percent = 50
-    launch_type                        = "FARGATE"
-    platform_version                   = "LATEST"
     scheduling_strategy                = "REPLICA"
     propagate_tags                     = "SERVICE"
-    service_tags                       = { Environment = "dev" }
-    triggers                           = {}
     wait_for_steady_state              = false
-    enable_fault_injection             = false
 
     assign_public_ip = false
 
@@ -113,17 +104,6 @@ service = {
         container_port = 80
       }
     }
-
-    create_task_definition   = true
-    family                   = "wordpress"
-    cpu                      = 1024
-    memory                   = 2048
-    network_mode             = "awsvpc"
-    requires_compatibilities = ["FARGATE"]
-
-    task_exec_iam_role_name = "ecsTaskExecutionRole"
-    enable_execute_command  = true
-
     create_security_group          = true
     security_group_name            = "wordpress-sg"
     security_group_use_name_prefix = true
@@ -136,40 +116,74 @@ service = {
     }
     security_group_tags = { Environment = "dev" }
 
+
+    tags = {
+      Environment = "dev"
+    }
+  }
+}
+
+
+
+task_definition = {
+  wordpress = {
+    create_task_definition   = true
+    family                   = "wordpress"
+    cpu                      = 1024
+    memory                   = 2048
+    network_mode             = "awsvpc"
+    requires_compatibilities = ["FARGATE"]
+    launch_type              = "FARGATE"
+
+    task_execution_role_name = "ecsTaskExecutionRole"
+    enable_execute_command   = true
+
+    ephemeral_storage = {
+      size_in_gib = 21
+    }
+
     container_definitions = {
       wordpress = {
-        create       = true
-        image        = "wordpress:latest"
-        cpu          = 256
-        memory       = 512
-        essential    = true
-        portMappings = [{ containerPort = 80, protocol = "tcp" }]
-        environment = [{ name = "WORDPRESS_DB_HOST", value = "127.0.0.1:3306" },
+        image     = "wordpress:latest"
+        cpu       = 256
+        memory    = 512
+        essential = true
+
+        portMappings = [{
+          containerPort = 80
+          protocol      = "tcp"
+        }]
+
+        environment = [
+          { name = "WORDPRESS_DB_HOST", value = "127.0.0.1:3306" },
           { name = "WORDPRESS_DB_USER", value = "wpuser" },
           { name = "WORDPRESS_DB_PASSWORD", value = "wppassword" },
-        { name = "WORDPRESS_DB_NAME", value = "wordpress" }]
-        create_cloudwatch_log_group = false
-
+          { name = "WORDPRESS_DB_NAME", value = "wordpress" }
+        ]
       }
+
       mysql = {
-        create       = true
-        image        = "mysql:8.0"
-        cpu          = 256
-        memory       = 512
-        essential    = true
-        portMappings = [{ containerPort = 3306, protocol = "tcp" }]
+        image     = "mysql:8.0"
+        cpu       = 256
+        memory    = 512
+        essential = true
+
+        portMappings = [{
+          containerPort = 3306
+          protocol      = "tcp"
+        }]
+
         environment = [
           { name = "MYSQL_DATABASE", value = "wordpress" },
           { name = "MYSQL_USER", value = "wpuser" },
           { name = "MYSQL_PASSWORD", value = "wppassword" },
           { name = "MYSQL_ROOT_PASSWORD", value = "rootpassword" }
         ]
-
-        create_cloudwatch_log_group = false
       }
     }
-    ephemeral_storage = { size_in_gib = 21 }
 
-    tags = { Environment = "dev" }
+    tags = {
+      Environment = "dev"
+    }
   }
 }
