@@ -12,7 +12,6 @@ resource "aws_ecs_service" "this" {
   }
 
   availability_zone_rebalancing = var.availability_zone_rebalancing
-  enable_execute_command        = true
 
   cluster = var.cluster_arn
 

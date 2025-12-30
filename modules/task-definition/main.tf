@@ -71,7 +71,6 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_custom" {
 # Single resource for task definition with clean inline container definitions
 resource "aws_ecs_task_definition" "this" {
   count         = var.create_task_definition ? 1 : 0
-  task_role_arn = "arn:aws:iam::569023477847:role/ecs-exec-task-role"
 
   container_definitions = jsonencode([
     for key, container in var.container_definitions :
