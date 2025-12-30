@@ -188,7 +188,54 @@ terraform init
 terraform plan -var-file=config/dev.tfvars
 terraform apply -var-file=config/dev.tfvars
 ```
+## 🚨 Important Notes
+| Launch Type | Requirement                            |
+| ----------- | -------------------------------------- |
+| **FARGATE** | No EC2 capacity configuration required |
+| **EC2**     | `ec2_capacity` **must be provided**    |
 
+## 🖥️ EC2 Capacity Configuration (Required for EC2)
+
+When using EC2 launch type, you must define the ec2_capacity block to provision Auto Scaling capacity for the ECS cluster.
+```
+ec2_capacity = {
+  instance_type                  = "t2.large"
+  desired_capacity               = 1
+  min_size                       = 1
+  max_size                       = 3
+  managed_termination_protection = "DISABLED"
+  maximum_scaling_step_size      = 1000
+  minimum_scaling_step_size      = 1
+  target_capacity                = 100
+  managed_scaling_status         = "ENABLED"
+  sg_name                        = "wordpress-ec2-capacity-sg"
+
+  security_group_rules = [
+    {
+      type        = "ingress"
+      description = "HTTP from internet"
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+      cidr_blocks = ["10.0.0.0/16"]
+    },
+    {
+      type        = "egress"
+      description = "Allow all outbound"
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  ]
+
+  tags = {
+    Environment = "production"
+    Application = "myapp"
+    ManagedBy   = "terraform"
+  }
+}
+```
 ------------------------------------------------------------------------
 
 ## 🧪 Example: EC2-based ECS Service (WordPress + MySQL)
