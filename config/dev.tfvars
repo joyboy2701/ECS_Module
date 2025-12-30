@@ -80,50 +80,13 @@ cluster = {
   cloudwatch_log_group_class             = "STANDARD"
   cloudwatch_log_group_tags              = { Environment = "dev" }
 }
-
-ec2_capacity = {
-  instance_type                  = "t2.large"
-  desired_capacity               = 1
-  min_size                       = 1
-  max_size                       = 3
-  managed_termination_protection = "DISABLED"
-  maximum_scaling_step_size      = 1000
-  minimum_scaling_step_size      = 1
-  target_capacity                = 100
-  managed_scaling_status         = "ENABLED"
-  sg_name                        = "wordpress-ec2-capacity-sg"
-  security_group_rules = [
-    {
-      type        = "ingress"
-      description = "HTTP from internet"
-      from_port   = 80
-      to_port     = 80
-      protocol    = "tcp"
-      cidr_blocks = ["10.0.0.0/16"]
-    },
-    {
-      type        = "egress"
-      description = "Allow all outbound"
-      from_port   = 0
-      to_port     = 0
-      protocol    = "-1"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  ]
-  tags = {
-    Environment = "production"
-    Application = "myapp"
-    ManagedBy   = "terraform"
-  }
-}
-
 service = {
   wordpress = {
     create         = true
     create_service = true
     name           = "wordpress-service"
     desired_count  = 1
-    launch_type    = "EC2"
+    launch_type    = "FARGATE"
 
     platform_version                   = "LATEST"
     deployment_maximum_percent         = 200
@@ -171,12 +134,11 @@ task_definition = {
     family                   = "wordpress"
     cpu                      = 1024
     memory                   = 2048
-    network_mode             = "host"
-    requires_compatibilities = ["EC2"]
-    launch_type              = "EC2"
+    network_mode             = "awsvpc"
+    requires_compatibilities = ["FARGATE"]
+    launch_type              = "FARGATE"
 
     task_execution_role_name = "ecsTaskExecutionRole"
-    enable_execute_command   = true
 
     ephemeral_storage = {
       size_in_gib = 21
@@ -191,7 +153,6 @@ task_definition = {
 
         portMappings = [{
           containerPort = 80
-          hostPort      = 80
           protocol      = "tcp"
         }]
 
@@ -220,7 +181,6 @@ task_definition = {
 
         portMappings = [{
           containerPort = 3306
-          hostPort      = 3306
           protocol      = "tcp"
         }]
         healthCheck = {
