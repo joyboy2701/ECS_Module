@@ -1,16 +1,16 @@
 variable "container_definitions" {
   description = "Container definitions for the task"
   type = map(object({
-    create                            = optional(bool, true)
-    name                              = optional(string)
-    image                             = string
-    cpu                               = optional(number)
-    memory                            = optional(number)
-    memoryReservation                 = optional(number)
-    essential                         = optional(bool, true)
-    command                           = optional(list(string))
-    entrypoint                        = optional(list(string))
-    environment                       = optional(list(map(string)))
+    create            = optional(bool, true)
+    name              = optional(string)
+    image             = string
+    cpu               = optional(number)
+    memory            = optional(number)
+    memoryReservation = optional(number)
+    essential         = optional(bool, true)
+    command           = optional(list(string))
+    entrypoint        = optional(list(string))
+    environment       = optional(list(map(string)))
     portMappings = optional(list(object({
       containerPort = number
       hostPort      = optional(number)
@@ -23,7 +23,7 @@ variable "container_definitions" {
       retries     = number
       startPeriod = optional(number)
     }))
-    
+
     # CloudWatch Logs Configuration
     enable_cloudwatch_logging              = optional(bool, false)
     create_cloudwatch_log_group            = optional(bool, false)
@@ -32,7 +32,7 @@ variable "container_definitions" {
     cloudwatch_log_group_class             = optional(string, "STANDARD")
     cloudwatch_log_group_retention_in_days = optional(number, 30)
     cloudwatch_log_group_kms_key_id        = optional(string)
-    
+
     # Other log configurations (if not using CloudWatch)
     logConfiguration = optional(any)
   }))

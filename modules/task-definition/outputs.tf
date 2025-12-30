@@ -14,7 +14,7 @@ output "task_definition_revision" {
 
 output "task_execution_role_arn" {
   description = "ARN of the task execution role"
-  value       = local.task_execution_role_arn
+  value       = aws_iam_role.ecs_task_execution_role[0].arn
 }
 
 output "task_execution_role_name" {
@@ -25,11 +25,11 @@ output "task_execution_role_name" {
 output "log_group_arns" {
   description = "ARNs of CloudWatch log groups created"
   value = {
-    for key, container in var.container_definitions : key => 
-      try(aws_cloudwatch_log_group.container_logs[key].arn, null)
-    if var.create_task_definition && 
-       try(container.create, true) && 
-       container.enable_cloudwatch_logging && 
-       container.create_cloudwatch_log_group
+    for key, container in var.container_definitions : key =>
+    try(aws_cloudwatch_log_group.container_logs[key].arn, null)
+    if var.create_task_definition &&
+    try(container.create, true) &&
+    container.enable_cloudwatch_logging &&
+    container.create_cloudwatch_log_group
   }
 }

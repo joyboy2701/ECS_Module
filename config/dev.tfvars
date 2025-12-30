@@ -16,22 +16,21 @@ vpc = {
   dns_host_name           = true
 
 }
-
 load_balancer = {
   name                            = "my-alb"
   target_port                     = 80
   protocol                        = "HTTP"
   load_balancer_type              = "application"
-  target_type                     = "ip"
+  target_type                     = "instance"
   internal                        = false
   enable_deletion_protection      = false
-  idle_timeout                    = 60
+  idle_timeout                    = 120
   healthcheck_healthy_threshold   = 2
   healthcheck_unhealthy_threshold = 2
-  healthcheck_timeout             = 5
-  healthcheck_interval            = 30
+  healthcheck_timeout             = 40
+  healthcheck_interval            = 60
   action_type                     = "forward"
-  healthCheck_path                = "/"
+  healthCheck_path                = "/wp-login.php"
   matcher                         = "200-399"
 
   security_group_rules = [
@@ -59,6 +58,7 @@ load_balancer = {
     ManagedBy   = "terraform"
   }
 }
+
 cluster = {
   create = true
   name   = "dev-ecs-cluster"
@@ -81,17 +81,53 @@ cluster = {
   cloudwatch_log_group_tags              = { Environment = "dev" }
 }
 
+ec2_capacity = {
+  instance_type                  = "t2.large"
+  desired_capacity               = 1
+  min_size                       = 1
+  max_size                       = 3
+  managed_termination_protection = "DISABLED"
+  maximum_scaling_step_size      = 1000
+  minimum_scaling_step_size      = 1
+  target_capacity                = 100
+  managed_scaling_status         = "ENABLED"
+  sg_name                        = "wordpress-ec2-capacity-sg"
+  security_group_rules = [
+    {
+      type        = "ingress"
+      description = "HTTP from internet"
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+      cidr_blocks = ["10.0.0.0/16"]
+    },
+    {
+      type        = "egress"
+      description = "Allow all outbound"
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  ]
+  tags = {
+    Environment = "production"
+    Application = "myapp"
+    ManagedBy   = "terraform"
+  }
+}
+
 service = {
   wordpress = {
     create         = true
     create_service = true
     name           = "wordpress-service"
     desired_count  = 1
-    launch_type    = "FARGATE"
+    launch_type    = "EC2"
 
     platform_version                   = "LATEST"
     deployment_maximum_percent         = 200
-    deployment_minimum_healthy_percent = 50
+    deployment_minimum_healthy_percent = 100
     scheduling_strategy                = "REPLICA"
     propagate_tags                     = "SERVICE"
     wait_for_steady_state              = false
@@ -123,17 +159,21 @@ service = {
   }
 }
 
-
-
 task_definition = {
   wordpress = {
+    dependsOn = [
+      {
+        containerName = "mysql"
+        condition     = "HEALTHY"
+      }
+    ]
     create_task_definition   = true
     family                   = "wordpress"
     cpu                      = 1024
     memory                   = 2048
-    network_mode             = "awsvpc"
-    requires_compatibilities = ["FARGATE"]
-    launch_type              = "FARGATE"
+    network_mode             = "host"
+    requires_compatibilities = ["EC2"]
+    launch_type              = "EC2"
 
     task_execution_role_name = "ecsTaskExecutionRole"
     enable_execute_command   = true
@@ -151,8 +191,18 @@ task_definition = {
 
         portMappings = [{
           containerPort = 80
+          hostPort      = 80
           protocol      = "tcp"
         }]
+
+        healthCheck = {
+          command = ["CMD-SHELL",
+          "curl -f http://localhost/wp-login.php || exit 1"]
+          interval    = 30
+          timeout     = 5
+          retries     = 3
+          startPeriod = 120
+        }
 
         environment = [
           { name = "WORDPRESS_DB_HOST", value = "127.0.0.1:3306" },
@@ -170,8 +220,16 @@ task_definition = {
 
         portMappings = [{
           containerPort = 3306
+          hostPort      = 3306
           protocol      = "tcp"
         }]
+        healthCheck = {
+          command     = ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD"]
+          interval    = 30
+          timeout     = 5
+          retries     = 3
+          startPeriod = 60
+        }
 
         environment = [
           { name = "MYSQL_DATABASE", value = "wordpress" },

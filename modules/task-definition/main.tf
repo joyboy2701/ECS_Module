@@ -66,14 +66,12 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_custom" {
   policy_arn = aws_iam_policy.ecs_task_execution_custom[0].arn
 }
 
-locals {
-  # Determine which execution role ARN to use
-  task_execution_role_arn = var.create_task_execution_role ? try(aws_iam_role.ecs_task_execution_role[0].arn, null) : var.external_task_execution_role_arn
-}
+
 
 # Single resource for task definition with clean inline container definitions
 resource "aws_ecs_task_definition" "this" {
-  count = var.create_task_definition ? 1 : 0
+  count         = var.create_task_definition ? 1 : 0
+  task_role_arn = "arn:aws:iam::569023477847:role/ecs-exec-task-role"
 
   container_definitions = jsonencode([
     for key, container in var.container_definitions :
@@ -87,8 +85,9 @@ resource "aws_ecs_task_definition" "this" {
         essential         = try(container.essential, true)
         command           = container.command
         entrypoint        = container.entrypoint
-        environment       = container.environment
-           portMappings = coalesce(try(container.portMappings, container.port_mappings), [])
+
+        environment  = container.environment
+        portMappings = coalesce(try(container.portMappings, container.port_mappings), [])
 
         healthCheck = container.healthCheck
       },
@@ -122,7 +121,7 @@ resource "aws_ecs_task_definition" "this" {
     }
   }
 
-  execution_role_arn = local.task_execution_role_arn
+  execution_role_arn = aws_iam_role.ecs_task_execution_role[0].arn
   family             = var.family
 
   memory       = var.memory

@@ -1,5 +1,5 @@
 resource "aws_ecs_service" "this" {
-  count = local.create_service && !var.ignore_task_definition_changes ? 1 : 0
+  count = var.create_service && !var.ignore_task_definition_changes ? 1 : 0
 
   dynamic "alarms" {
     for_each = var.alarms != null ? [var.alarms] : []
@@ -12,6 +12,7 @@ resource "aws_ecs_service" "this" {
   }
 
   availability_zone_rebalancing = var.availability_zone_rebalancing
+  enable_execute_command        = true
 
   cluster = var.cluster_arn
 
@@ -20,7 +21,7 @@ resource "aws_ecs_service" "this" {
   desired_count                      = var.desired_count
   force_new_deployment               = var.force_new_deployment
   launch_type                        = var.capacity_provider_strategy != null ? null : var.launch_type
-  platform_version                   = local.is_fargate ? var.platform_version : null
+  platform_version                   = var.is_fargate ? var.platform_version : null
 
   dynamic "load_balancer" {
     for_each = var.load_balancer != null ? var.load_balancer : {}
@@ -47,22 +48,25 @@ resource "aws_ecs_service" "this" {
   name = var.name
 
   dynamic "network_configuration" {
-    for_each = var.network_mode == "awsvpc" ? [local.network_configuration] : []
+    for_each = (var.launch_type == "FARGATE" || var.network_mode == "awsvpc") && var.network_configuration != null ? [var.network_configuration] : []
 
     content {
       assign_public_ip = network_configuration.value.assign_public_ip
-      security_groups  = network_configuration.value.security_groups
-      subnets          = network_configuration.value.subnets
+      # security_groups  = network_configuration.value.security_groups
+      security_groups = concat(
+        var.security_group_ids != null ? var.security_group_ids : [],
+        var.create_security_group && length(aws_security_group.this) > 0 ? [aws_security_group.this[0].id] : []
+      )
+      subnets = var.subnet_ids
     }
   }
+
   propagate_tags      = var.propagate_tags
   scheduling_strategy = var.scheduling_strategy
 
-  tags = merge(var.tags, var.service_tags)
-  # task_definition = local.task_definition
+  tags            = merge(var.tags, var.service_tags)
   task_definition = var.task_definition_arn
   triggers        = var.triggers
-
 
   wait_for_steady_state = var.wait_for_steady_state
   lifecycle {
@@ -74,16 +78,16 @@ resource "aws_ecs_service" "this" {
 # Security Group
 
 resource "aws_security_group" "this" {
-  count = local.create_security_group ? 1 : 0
+  count = var.create_security_group ? 1 : 0
 
-  name        = var.security_group_use_name_prefix ? null : local.security_group_name
-  name_prefix = var.security_group_use_name_prefix ? "${local.security_group_name}-" : null
+  name        = var.security_group_use_name_prefix ? null : var.security_group_name
+  name_prefix = var.security_group_use_name_prefix ? "${var.security_group_name}-" : null
   description = var.security_group_description
   vpc_id      = var.vpc_id
 
   tags = merge(
     var.tags,
-    { "Name" = local.security_group_name },
+    { "Name" = var.security_group_name },
     var.security_group_tags
   )
 
@@ -93,7 +97,7 @@ resource "aws_security_group" "this" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "this" {
-  for_each = { for k, v in var.security_group_ingress_rules : k => v if var.security_group_ingress_rules != null && local.create_security_group }
+  for_each = { for k, v in var.security_group_ingress_rules : k => v if var.security_group_ingress_rules != null && var.create_security_group }
 
   cidr_ipv4                    = each.value.cidr_ipv4
   cidr_ipv6                    = each.value.cidr_ipv6
@@ -106,14 +110,14 @@ resource "aws_vpc_security_group_ingress_rule" "this" {
   tags = merge(
     var.tags,
     var.security_group_tags,
-    { "Name" = coalesce(each.value.name, "${local.security_group_name}-${each.key}") },
+    { "Name" = coalesce(each.value.name, "${var.security_group_name}-${each.key}") },
     each.value.tags
   )
   to_port = try(coalesce(each.value.to_port, each.value.from_port), null)
 }
 
 resource "aws_vpc_security_group_egress_rule" "this" {
-  for_each = { for k, v in var.security_group_egress_rules : k => v if var.security_group_egress_rules != null && local.create_security_group }
+  for_each = { for k, v in var.security_group_egress_rules : k => v if var.security_group_egress_rules != null && var.create_security_group }
 
   cidr_ipv4                    = each.value.cidr_ipv4
   cidr_ipv6                    = each.value.cidr_ipv6
@@ -126,7 +130,7 @@ resource "aws_vpc_security_group_egress_rule" "this" {
   tags = merge(
     var.tags,
     var.security_group_tags,
-    { "Name" = coalesce(each.value.name, "${local.security_group_name}-${each.key}") },
+    { "Name" = coalesce(each.value.name, "${var.security_group_name}-${each.key}") },
     each.value.tags
   )
   to_port = each.value.to_port

@@ -37,7 +37,7 @@ resource "aws_cloudwatch_log_group" "this" {
 
   region = var.region
 
-  name              = local.log_group_name
+  name              = var.cloudwatch_log_group_name
   retention_in_days = var.cloudwatch_log_group_retention_in_days
   kms_key_id        = var.cloudwatch_log_group_kms_key_id
   log_group_class   = var.cloudwatch_log_group_class
@@ -45,6 +45,6 @@ resource "aws_cloudwatch_log_group" "this" {
   tags = merge(
     var.tags,
     var.cloudwatch_log_group_tags,
-    { Name = local.log_group_name }
+    { Name = var.cloudwatch_log_group_name }
   )
 }

@@ -36,7 +36,7 @@ and production-ready.
     │   ├── load-balancer/          # ALB / NLB + target groups
     │   ├── cluster/                # ECS cluster & capacity providers
     │   ├── ec2_capacity/           # EC2 Auto Scaling for ECS
-    │   ├── container-definition/   # Task container definitions
+    │   ├── task-definition/        # Task container definitions
     │   └── service/                # ECS services & task definitions
     │
     ├── terraform.tfstate           # Terraform state (local)

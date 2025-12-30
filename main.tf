@@ -66,12 +66,12 @@ module "load_balancer" {
 module "ecs_cluster" {
   source = "./modules/cluster"
 
-  create = true
-  name   = var.cluster.name
-  region = var.cluster.region
-  tags   = var.cluster.tags
-  configuration = var.cluster.configuration
-  setting       = var.cluster.setting
+  create                                 = true
+  name                                   = var.cluster.name
+  region                                 = var.cluster.region
+  tags                                   = var.cluster.tags
+  configuration                          = var.cluster.configuration
+  setting                                = var.cluster.setting
   create_cloudwatch_log_group            = var.cluster.create_cloudwatch_log_group
   cloudwatch_log_group_name              = var.cluster.cloudwatch_log_group_name
   cloudwatch_log_group_retention_in_days = var.cluster.cloudwatch_log_group_retention_in_days
@@ -84,12 +84,12 @@ module "ecs_cluster" {
 module "ecs_service" {
   source = "./modules/service"
 
-  for_each = var.service
-
-  create                         = each.value.create
-  create_service                 = each.value.create_service
-  ignore_task_definition_changes = each.value.ignore_task_definition_changes
-
+  for_each                           = var.service
+  is_fargate                         = local.service_configs[each.key].is_fargate
+  network_configuration              = local.service_configs[each.key].network_configuration
+  create                             = each.value.create
+  create_service                     = each.value.create_service
+  ignore_task_definition_changes     = each.value.ignore_task_definition_changes
   cluster_arn                        = module.ecs_cluster.arn
   name                               = each.value.name
   desired_count                      = each.value.desired_count
@@ -105,15 +105,15 @@ module "ecs_service" {
   wait_for_steady_state              = each.value.wait_for_steady_state
 
   # Networking
-  assign_public_ip   = each.value.assign_public_ip
-  subnet_ids         = module.vpc.private_subnet_ids
-  vpc_id = module.vpc.vpc_id
+  assign_public_ip = each.value.assign_public_ip
+  subnet_ids       = module.vpc.private_subnet_ids
+  vpc_id           = module.vpc.vpc_id
 
-  create_security_group = each.value.create_security_group
-  security_group_name   = each.value.security_group_name
-  security_group_egress_rules = each.value.security_group_egress_rules
+  create_security_group        = each.value.create_security_group
+  security_group_name          = each.value.security_group_name
+  security_group_egress_rules  = each.value.security_group_egress_rules
   security_group_ingress_rules = each.value.security_group_ingress_rules
-  security_group_tags   = each.value.security_group_tags
+  security_group_tags          = each.value.security_group_tags
 
 
   # Load Balancer
@@ -135,19 +135,19 @@ module "task_definition" {
   for_each = local.task_definition_configs
   source   = "./modules/task-definition"
 
-  create_task_definition           = each.value.create_task_definition
-  cpu                              = each.value.cpu
-  memory                           = each.value.memory
-  family                           = coalesce(each.value.family, each.key)
-  network_mode                     = each.value.network_mode
-  requires_compatibilities         = each.value.requires_compatibilities
-  launch_type                      = each.value.launch_type
-  enable_fault_injection           = each.value.enable_fault_injection
-  skip_destroy                     = each.value.skip_destroy
-  track_latest                     = each.value.track_latest
-  current_region = data.aws_region.current.region
+  create_task_definition   = each.value.create_task_definition
+  cpu                      = each.value.cpu
+  memory                   = each.value.memory
+  family                   = coalesce(each.value.family, each.key)
+  network_mode             = each.value.network_mode
+  requires_compatibilities = each.value.requires_compatibilities
+  launch_type              = each.value.launch_type
+  enable_fault_injection   = each.value.enable_fault_injection
+  skip_destroy             = each.value.skip_destroy
+  track_latest             = each.value.track_latest
+  current_region           = data.aws_region.current.region
 
-  container_definitions            = each.value.container_definitions
+  container_definitions = each.value.container_definitions
 
   create_task_execution_role       = each.value.create_task_execution_role
   task_execution_role_name         = each.value.task_execution_role_name
@@ -156,9 +156,9 @@ module "task_definition" {
   task_execution_custom_policies   = each.value.task_execution_custom_policies
   task_execution_role_tags         = each.value.task_execution_role_tags
 
-  ephemeral_storage                = each.value.ephemeral_storage
-  volumes                          = each.value.volumes
+  ephemeral_storage = each.value.ephemeral_storage
+  volumes           = each.value.volumes
 
-  tags       = each.value.tags
+  tags      = each.value.tags
   task_tags = each.value.task_tags
 }

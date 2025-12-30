@@ -22,8 +22,6 @@ output "cloudwatch_log_group_arn" {
   description = "ARN of CloudWatch log group created"
   value       = module.ecs_cluster.cloudwatch_log_group_arn
 }
-
-# output "services" {
-#   description = "Map of services created and their attributes"
-#   value       = module.ecs_service
-# }
+output "lb_dns_name" {
+  value = module.load_balancer.alb_dns_name
+}

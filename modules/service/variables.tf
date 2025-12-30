@@ -29,6 +29,19 @@ variable "tags" {
 # Service
 ################################################################################
 
+variable "is_fargate" {
+  type        = bool
+  description = "Whether the service is using FARGATE launch type"
+}
+
+variable "network_configuration" {
+  type = object({
+    security_groups  = list(string)
+    assign_public_ip = bool
+  })
+  description = "ECS service network configuration"
+}
+
 variable "ignore_task_definition_changes" {
   description = "Whether changes to service `task_definition` changes should be ignored"
   type        = bool
@@ -69,37 +82,7 @@ variable "cluster_arn" {
   nullable    = false
 }
 
-variable "deployment_circuit_breaker" {
-  description = "Configuration block for deployment circuit breaker"
-  type = object({
-    enable   = bool
-    rollback = bool
-  })
-  default = null
-}
 
-variable "deployment_configuration" {
-  description = "Configuration block for deployment settings"
-  type = object({
-    strategy             = optional(string)
-    bake_time_in_minutes = optional(string)
-    canary_configuration = optional(object({
-      canary_bake_time_in_minutes = optional(string)
-      canary_percent              = optional(string)
-    }))
-    linear_configuration = optional(object({
-      step_bake_time_in_minutes = optional(string)
-      step_percent              = optional(string)
-    }))
-    lifecycle_hook = optional(map(object({
-      hook_target_arn  = string
-      role_arn         = string
-      lifecycle_stages = list(string)
-      hook_details     = optional(string)
-    })))
-  })
-  default = null
-}
 
 variable "deployment_controller" {
   description = "Configuration block for deployment controller configuration"
@@ -132,19 +115,6 @@ variable "enable_ecs_managed_tags" {
   type        = bool
   default     = true
   nullable    = false
-}
-
-variable "enable_execute_command" {
-  description = "Specifies whether to enable Amazon ECS Exec for the tasks within the service"
-  type        = bool
-  default     = false
-  nullable    = false
-}
-
-variable "force_delete" {
-  description = "Enable to delete a service even if it wasn't scaled down to zero tasks. It's only necessary to use this if the service uses the `REPLICA` scheduling strategy"
-  type        = bool
-  default     = null
 }
 
 variable "force_new_deployment" {
@@ -204,12 +174,6 @@ variable "security_group_ids" {
   nullable    = false
 }
 
-variable "sigint_rollback" {
-  description = "Whether to enable graceful termination of deployments using SIGINT signals. Only applicable when using ECS deployment controller and requires wait_for_steady_state = true. Default is false"
-  type        = bool
-  default     = null
-}
-
 variable "subnet_ids" {
   description = "List of subnets to associate with the task or service"
   type        = list(string)
@@ -223,14 +187,6 @@ variable "vpc_id" {
   default     = null
 }
 
-variable "ordered_placement_strategy" {
-  description = "Service level strategy rules that are taken into consideration during task placement. List from top to bottom in order of precedence"
-  type = map(object({
-    field = optional(string)
-    type  = string
-  }))
-  default = null
-}
 variable "task_definition_arn" {
   type = string
 }
@@ -262,72 +218,6 @@ variable "scheduling_strategy" {
   default     = null
 }
 
-variable "service_connect_configuration" {
-  description = "The ECS Service Connect configuration for this service to discover and connect to services, and be discovered by, and connected from, other services within a namespace"
-  type = object({
-    enabled = optional(bool, true)
-    log_configuration = optional(object({
-      log_driver = string
-      options    = optional(map(string))
-      secret_option = optional(list(object({
-        name       = string
-        value_from = string
-      })))
-    }))
-    namespace = optional(string)
-    service = optional(list(object({
-      client_alias = optional(object({
-        dns_name = optional(string)
-        port     = number
-        test_traffic_rules = optional(list(object({
-          header = optional(object({
-            name = string
-            value = object({
-              exact = string
-            })
-          }))
-        })))
-      }))
-      discovery_name        = optional(string)
-      ingress_port_override = optional(number)
-      port_name             = string
-      timeout = optional(object({
-        idle_timeout_seconds        = optional(number)
-        per_request_timeout_seconds = optional(number)
-      }))
-      tls = optional(object({
-        issuer_cert_authority = object({
-          aws_pca_authority_arn = string
-        })
-        kms_key  = optional(string)
-        role_arn = optional(string)
-      }))
-    })))
-  })
-  default = null
-}
-
-variable "service_registries" {
-  description = "Service discovery registries for the service"
-  type = object({
-    container_name = optional(string)
-    container_port = optional(number)
-    port           = optional(number)
-    registry_arn   = string
-  })
-  default = null
-}
-
-variable "timeouts" {
-  description = "Create, update, and delete timeout configurations for the service"
-  type = object({
-    create = optional(string)
-    update = optional(string)
-    delete = optional(string)
-  })
-  default = null
-}
-
 variable "triggers" {
   description = "Map of arbitrary keys and values that, when changed, will trigger an in-place update (redeployment). Useful with `timestamp()`"
   type        = map(string)
@@ -353,16 +243,6 @@ variable "volume_configuration" {
       throughput  = optional(number)
       volume_type = optional(string)
     })
-  })
-  default = null
-}
-
-variable "vpc_lattice_configurations" {
-  description = "The VPC Lattice configuration for your service that allows Lattice to connect, secure, and monitor your service across multiple accounts and VPCs"
-  type = object({
-    role_arn         = string
-    target_group_arn = string
-    port_name        = string
   })
   default = null
 }

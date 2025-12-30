@@ -106,25 +106,6 @@ variable "cloudwatch_log_group_tags" {
 # Capacity Providers
 ################################################################################
 
-variable "autoscaling_capacity_providers" {
-  description = "Map of autoscaling capacity provider definitions to create for the cluster"
-  type = map(object({
-    auto_scaling_group_arn = string
-    managed_draining       = optional(string, "ENABLED")
-    managed_scaling = optional(object({
-      instance_warmup_period    = optional(number)
-      maximum_scaling_step_size = optional(number)
-      minimum_scaling_step_size = optional(number)
-      status                    = optional(string)
-      target_capacity           = optional(number)
-    }))
-    managed_termination_protection = optional(string)
-    name                           = optional(string) # Will fall back to use map key if not set
-    tags                           = optional(map(string), {})
-  }))
-  default = null
-}
-
 variable "default_capacity_provider_strategy" {
   description = "Map of default capacity provider strategy definitions to use for the cluster"
   type = map(object({

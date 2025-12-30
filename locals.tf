@@ -5,11 +5,10 @@ locals {
   ]
 
   enable_ec2_capacity = length(local.ec2_services) > 0
-}
 
-
-locals {
-  # Default task definition configuration (single object)
+  # ---------------------------------------
+  # Task definition defaults
+  # ---------------------------------------
   default_task_definition = {
     create_task_definition           = true
     cpu                              = null
@@ -26,24 +25,73 @@ locals {
     task_execution_role_name         = "ecs-task-execution-role"
     task_execution_role_description  = "ECS Task Execution Role"
     external_task_execution_role_arn = null
-    task_execution_custom_policies   = null
-    task_execution_role_tags         = {}
     ephemeral_storage                = null
     volumes                          = {}
     tags                             = {}
     task_tags                        = {}
   }
 
-  # Apply defaults PER task definition (map → map)
   task_definition_configs = {
-    for key, cfg in var.task_definition :
-    key => merge(
+    for name, cfg in var.task_definition :
+    name => merge(
       local.default_task_definition,
       cfg,
       {
-        # Always guarantee container_definitions is a map
         container_definitions = lookup(cfg, "container_definitions", {})
       }
     )
+  }
+
+  # ---------------------------------------
+  # ECS SERVICE NORMALIZATION (IMPORTANT)
+  # ---------------------------------------
+  # service_configs = {
+  #   for name, svc in var.service :
+  #   name => {
+  #     is_fargate            = upper(svc.launch_type) == "FARGATE"
+  #     create_service        = svc.create && svc.create_service
+  #     create_security_group = svc.create && svc.create_security_group && svc.network_mode == "awsvpc"
+
+  #     security_group_name = coalesce(
+  #       svc.security_group_name,
+  #       svc.name,
+  #       "NotProvided"
+  #     )
+
+  #     network_configuration = {
+  #       assign_public_ip = svc.assign_public_ip
+  #       security_groups  = svc.security_group_ids
+  #     }
+
+  #     log_group_name = coalesce(
+  #       svc.cloudwatch_log_group_name,
+  #       "/aws/ecs/${svc.name}"
+  #     )
+  #   }
+  # }
+  service_configs = {
+    for name, svc in var.service :
+    name => {
+      is_fargate            = upper(svc.launch_type) == "FARGATE"
+      create_service        = svc.create && svc.create_service
+      create_security_group = svc.create && svc.create_security_group && svc.network_mode == "awsvpc"
+
+      security_group_name = coalesce(
+        svc.security_group_name,
+        svc.name,
+        "NotProvided"
+      )
+
+      # Only set network_configuration for Fargate or awsvpc tasks
+      network_configuration = (upper(svc.launch_type) == "FARGATE" || svc.network_mode == "awsvpc") ? {
+        assign_public_ip = svc.assign_public_ip
+        security_groups  = svc.security_group_ids
+      } : null
+
+      log_group_name = coalesce(
+        svc.cloudwatch_log_group_name,
+        "/aws/ecs/${svc.name}"
+      )
+    }
   }
 }
