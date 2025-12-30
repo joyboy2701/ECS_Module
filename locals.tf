@@ -42,33 +42,6 @@ locals {
     )
   }
 
-  # ---------------------------------------
-  # ECS SERVICE NORMALIZATION (IMPORTANT)
-  # ---------------------------------------
-  # service_configs = {
-  #   for name, svc in var.service :
-  #   name => {
-  #     is_fargate            = upper(svc.launch_type) == "FARGATE"
-  #     create_service        = svc.create && svc.create_service
-  #     create_security_group = svc.create && svc.create_security_group && svc.network_mode == "awsvpc"
-
-  #     security_group_name = coalesce(
-  #       svc.security_group_name,
-  #       svc.name,
-  #       "NotProvided"
-  #     )
-
-  #     network_configuration = {
-  #       assign_public_ip = svc.assign_public_ip
-  #       security_groups  = svc.security_group_ids
-  #     }
-
-  #     log_group_name = coalesce(
-  #       svc.cloudwatch_log_group_name,
-  #       "/aws/ecs/${svc.name}"
-  #     )
-  #   }
-  # }
   service_configs = {
     for name, svc in var.service :
     name => {

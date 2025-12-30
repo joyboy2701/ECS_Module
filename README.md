@@ -199,7 +199,7 @@ terraform apply -var-file=config/dev.tfvars
 When using EC2 launch type, you must define the ec2_capacity block to provision Auto Scaling capacity for the ECS cluster.
 ```
 ec2_capacity = {
-  instance_type                  = "t2.large"
+  instance_type                  = "t2.medium"
   desired_capacity               = 1
   min_size                       = 1
   max_size                       = 3
@@ -327,7 +327,7 @@ cluster = {
 }
 
 ec2_capacity = {
-  instance_type                  = "t2.large"
+  instance_type                  = "t2.medium"
   desired_capacity               = 1
   min_size                       = 1
   max_size                       = 3
