@@ -1,10 +1,3 @@
-# variable "create" {
-#   description = "Determines whether resources will be created (affects all resources)"
-#   type        = bool
-#   default     = true
-#   nullable    = false
-# }
-
 variable "create_service" {
   description = "Determines whether service resource will be created (set to `false` in case you want to create task definition only)"
   type        = bool
@@ -25,9 +18,7 @@ variable "tags" {
   nullable    = false
 }
 
-################################################################################
 # Service
-################################################################################
 
 variable "is_fargate" {
   type        = bool
@@ -139,7 +130,7 @@ variable "launch_type" {
 
 variable "load_balancer" {
   description = "Configuration block for load balancers"
-  type = map(object({
+  type = object({
     container_name   = string
     container_port   = number
     elb_name         = optional(string)
@@ -150,7 +141,7 @@ variable "load_balancer" {
       role_arn                   = string
       test_listener_rule         = optional(string)
     }))
-  }))
+  })
   default = null
 }
 

@@ -21,29 +21,24 @@ resource "aws_ecs_service" "this" {
   force_new_deployment               = var.force_new_deployment
   launch_type                        = var.capacity_provider_strategy != null ? null : var.launch_type
   platform_version                   = var.is_fargate ? var.platform_version : null
+  
+  load_balancer {
+    container_name   = var.load_balancer.container_name
+    container_port   = var.load_balancer.container_port
+    elb_name         = var.load_balancer.elb_name
+    target_group_arn = var.load_balancer.target_group_arn
 
-  dynamic "load_balancer" {
-    for_each = var.load_balancer != null ? var.load_balancer : {}
+    dynamic "advanced_configuration" {
+      for_each = var.load_balancer.advanced_configuration != null ? [var.load_balancer.advanced_configuration] : []
 
-    content {
-      container_name   = load_balancer.value.container_name
-      container_port   = load_balancer.value.container_port
-      elb_name         = load_balancer.value.elb_name
-      target_group_arn = load_balancer.value.target_group_arn
-
-      dynamic "advanced_configuration" {
-        for_each = load_balancer.value.advanced_configuration != null ? [load_balancer.value.advanced_configuration] : []
-
-        content {
-          alternate_target_group_arn = advanced_configuration.value.alternate_target_group_arn
-          production_listener_rule   = advanced_configuration.value.production_listener_rule
-          role_arn                   = advanced_configuration.value.role_arn
-          test_listener_rule         = advanced_configuration.value.test_listener_rule
-        }
+      content {
+        alternate_target_group_arn = advanced_configuration.value.alternate_target_group_arn
+        production_listener_rule   = advanced_configuration.value.production_listener_rule
+        role_arn                   = advanced_configuration.value.role_arn
+        test_listener_rule         = advanced_configuration.value.test_listener_rule
       }
     }
   }
-
   name = var.name
 
   dynamic "network_configuration" {

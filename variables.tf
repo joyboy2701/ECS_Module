@@ -15,26 +15,51 @@ variable "vpc" {
     enable_dns_support      = bool
   })
 }
-variable "load_balancer" {
-  description = "Configurations for load balancer"
-  type = object({
-    name                            = string
-    target_port                     = number
-    protocol                        = string
-    load_balancer_type              = string
-    target_type                     = string
-    internal                        = bool
-    enable_deletion_protection      = bool
-    idle_timeout                    = number
-    healthcheck_healthy_threshold   = number
-    healthcheck_unhealthy_threshold = number
-    healthcheck_timeout             = number
-    healthcheck_interval            = number
-    action_type                     = string
-    matcher                         = string
-    healthCheck_path                = string
-    listner_port                    = number
+# variable "load_balancer" {
+#   description = "Configurations for load balancer"
+#   type = object({
+#     name                            = string
+#     target_port                     = number
+#     protocol                        = string
+#     load_balancer_type              = string
+#     target_type                     = string
+#     internal                        = bool
+#     enable_deletion_protection      = bool
+#     idle_timeout                    = number
+#     healthcheck_healthy_threshold   = number
+#     healthcheck_unhealthy_threshold = number
+#     healthcheck_timeout             = number
+#     healthcheck_interval            = number
+#     action_type                     = string
+#     matcher                         = string
+#     healthCheck_path                = string
+#     listner_port                    = number
 
+#     security_group_rules = optional(list(object({
+#       type            = string # "ingress" or "egress"
+#       description     = optional(string)
+#       from_port       = number
+#       to_port         = number
+#       protocol        = string
+#       cidr_blocks     = optional(list(string))
+#       security_groups = optional(list(string))
+#       self            = optional(bool, false)
+#     })), [])
+
+#     tags = optional(map(string), {})
+#   })
+# }
+
+variable "load_balancer" {
+  description = "Configurations for load balancer with support for multiple services"
+  type = object({
+    name                       = string
+    load_balancer_type         = string
+    internal                   = bool
+    enable_deletion_protection = bool
+    idle_timeout               = number
+
+    # Security group rules for ALB
     security_group_rules = optional(list(object({
       type            = string # "ingress" or "egress"
       description     = optional(string)
@@ -45,6 +70,38 @@ variable "load_balancer" {
       security_groups = optional(list(string))
       self            = optional(bool, false)
     })), [])
+
+    # Target groups - one per service
+    target_groups = map(object({
+      name        = string
+      port        = number
+      protocol    = string
+      target_type = optional(string, "ip")
+      health_check = optional(object({ # ← Change from individual fields
+        path                = optional(string)
+        matcher             = optional(string)
+        interval            = optional(number)
+        healthy_threshold   = optional(number)
+        unhealthy_threshold = optional(number)
+        timeout             = optional(number)
+      }))
+    }))
+
+    # Listeners
+    listeners = map(object({
+      port                = number
+      protocol            = string
+      target_group_key    = string # Key from target_groups map
+      ssl_policy          = optional(string)
+      certificate_arn     = optional(string)
+      default_action_type = optional(string, "forward")
+
+      rules = optional(map(object({
+        priority         = number
+        path_patterns    = list(string) # ["/nginx/*", "/api/*"]
+        target_group_key = string
+      })), {})
+    }))
 
     tags = optional(map(string), {})
   })
@@ -133,12 +190,12 @@ variable "service" {
     security_group_ids = optional(list(string))
 
     # Load Balancer
-    load_balancer = optional(map(object({
+    load_balancer = optional(object({
       container_name   = string
       container_port   = number
       elb_name         = optional(string)
       target_group_arn = optional(string)
-    })))
+    }))
 
     # Task Definition
     create_task_definition   = optional(bool)

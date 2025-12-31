@@ -49,36 +49,77 @@ resource "aws_lb" "load_balancer" {
   }
 }
 
-resource "aws_lb_target_group" "target_group" {
-  name        = "${var.name}-tg"
-  port        = var.target_port
-  protocol    = var.protocol
-  vpc_id      = var.vpc_id
-  target_type = var.target_type
+resource "aws_lb_target_group" "target_groups" {
+  for_each = var.target_groups
 
-  health_check {
-    path                = var.healthCheck_path
-    matcher             = var.matcher
-    interval            = var.healthcheck_interval
-    port                = var.target_port
-    protocol            = var.protocol
-    healthy_threshold   = var.healthcheck_healthy_threshold
-    unhealthy_threshold = var.healthcheck_unhealthy_threshold
-    timeout             = var.healthcheck_healthy_timeout
+  name     = each.value.name
+  port     = each.value.port
+  protocol = each.value.protocol
+  vpc_id   = var.vpc_id
+  # target_type = var.target_groups.target_type
+  target_type = each.value.target_type
+
+  dynamic "health_check" {
+    for_each = each.value.health_check != null ? [each.value.health_check] : []
+
+    content {
+      path                = try(health_check.value.path, var.target_groups.health_check.path)
+      matcher             = try(health_check.value.matcher, var.target_groups.health_check.matcher)
+      interval            = try(health_check.value.interval, var.target_groups.health_checkhealthcheck_interval)
+      port                = each.value.port
+      protocol            = each.value.protocol
+      healthy_threshold   = try(health_check.value.healthy_threshold, var.target_groups.health_checkhealthcheck_healthy_threshold)
+      unhealthy_threshold = try(health_check.value.unhealthy_threshold, var.target_groups.health_check.healthcheck_unhealthy_threshold)
+      timeout             = try(health_check.value.timeout, var.target_groups.health_check.healthcheck_healthy_timeout)
+    }
   }
+
   tags = {
-    Name = "${var.name}-tg"
+    Name = each.value.name
   }
 }
 
+# Create listeners for each protocol/port combination
+resource "aws_lb_listener" "listeners" {
+  for_each = var.listeners
 
-resource "aws_lb_listener" "tcp_listner" {
   load_balancer_arn = aws_lb.load_balancer.arn
-  port              = var.listner_port
-  protocol          = var.protocol
+  port              = each.value.port
+  protocol          = each.value.protocol
 
   default_action {
-    type             = var.action_type
-    target_group_arn = aws_lb_target_group.target_group.arn
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.target_groups[each.value.target_group_key].arn
   }
+}
+resource "aws_lb_listener_rule" "rules" {
+  # Correct nested for syntax
+  for_each = merge([
+    for listener_key, listener in var.listeners : {
+      for rule_key, rule in listener.rules :
+      "${listener_key}-${rule_key}" => {
+        listener_key = listener_key
+        rule         = rule
+      }
+    }
+  ]...)
+
+  listener_arn = aws_lb_listener.listeners[each.value.listener_key].arn
+  priority     = each.value.rule.priority
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.target_groups[each.value.rule.target_group_key].arn
+  }
+
+  condition {
+    dynamic "path_pattern" {
+      for_each = each.value.rule.path_patterns
+      content {
+        values = [path_pattern.value]
+      }
+    }
+  }
+
+  tags = var.tags
 }
