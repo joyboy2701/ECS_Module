@@ -19,8 +19,8 @@ locals {
     for name, svc in var.service :
     name => {
       is_fargate            = upper(svc.launch_type) == "FARGATE"
-      create_service        = svc.create && svc.create_service
-      create_security_group = svc.create && svc.create_security_group && svc.network_mode == "awsvpc"
+      create_service        = svc.create_service
+      create_security_group = svc.create_security_group && svc.network_mode == "awsvpc"
 
       security_group_name = coalesce(
         svc.security_group_name,

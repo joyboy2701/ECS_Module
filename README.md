@@ -91,6 +91,7 @@ load_balancer
 | --------------------------------- | ------------ | ---------------------------------- |
 | `name`                            | string       | Load balancer name                 |
 | `target_port`                     | number       | Target group port                  |
+| `listnert_port`                   | number       | Listner  port  80 for HTTP/443 for HTTPS                 |
 | `protocol`                        | string       | Listener protocol                  |
 | `load_balancer_type`              | string       | ALB or NLB                         |
 | `target_type`                     | string       | `instance` (EC2) or `ip` (Fargate) |
@@ -145,7 +146,6 @@ service
 ---------------------------------------------------------------------
 | Variable                 | Type         | Purpose                  |
 | ------------------------ | ------------ | ------------------------ |
-| `create`                 | bool         | Enable service module    |
 | `create_service`         | bool         | Create ECS service       |
 | `name`                   | string       | Service name             |
 | `launch_type`            | string       | `EC2` or `FARGATE`       |

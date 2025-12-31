@@ -67,7 +67,7 @@ module "load_balancer" {
 module "ecs_cluster" {
   source = "./modules/cluster"
 
-  create                                 = true
+  create                                 = var.cluster.create
   name                                   = var.cluster.name
   region                                 = var.cluster.region
   tags                                   = var.cluster.tags
@@ -79,7 +79,6 @@ module "ecs_cluster" {
   cloudwatch_log_group_kms_key_id        = data.aws_kms_key.log_group_key.arn
   cloudwatch_log_group_class             = var.cluster.cloudwatch_log_group_class
   cloudwatch_log_group_tags              = var.cluster.cloudwatch_log_group_tags
-
 }
 
 module "ecs_service" {
@@ -88,7 +87,6 @@ module "ecs_service" {
   for_each                           = var.service
   is_fargate                         = local.service_configs[each.key].is_fargate
   network_configuration              = local.service_configs[each.key].network_configuration
-  create                             = each.value.create
   create_service                     = each.value.create_service
   ignore_task_definition_changes     = each.value.ignore_task_definition_changes
   cluster_arn                        = module.ecs_cluster.arn

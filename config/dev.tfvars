@@ -84,7 +84,6 @@ cluster = {
 }
 service = {
   wordpress = {
-    create         = true
     create_service = true
     name           = "wordpress-service"
     desired_count  = 1
