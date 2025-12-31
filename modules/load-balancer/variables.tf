@@ -16,6 +16,9 @@ variable "target_port" {
   type        = number
   description = "Port where ALB will forward traffic (ECS container port)"
 }
+variable "listner_port" {
+  type = number
+}
 
 variable "protocol" {
   type        = string

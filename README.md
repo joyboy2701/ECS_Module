@@ -189,10 +189,14 @@ terraform plan -var-file=config/dev.tfvars
 terraform apply -var-file=config/dev.tfvars
 ```
 ## 🚨 Important Notes
-| Launch Type | Requirement                            |
-| ----------- | -------------------------------------- |
-| **FARGATE** | No EC2 capacity configuration required |
-| **EC2**     | `ec2_capacity` **must be provided**    |
+| Rule                        | Requirement                                                   |
+| --------------------------- | ------------------------------------------------------------- |
+| **FARGATE**                 | No EC2 capacity configuration required                        |
+| **EC2**                     | `ec2_capacity` **must be provided**                           |
+| **Service ↔ Task Mapping**  | `service` and `task_definition` **MUST use the same map key** |
+| **Multi-service Setup**     | Each service requires a matching task definition key          |
+| **Launch Type Consistency** | `launch_type` and `requires_compatibilities` must match       |
+
 
 ## 🖥️ EC2 Capacity Configuration (Required for EC2)
 
@@ -438,6 +442,12 @@ task_definition = {
           hostPort      = 80
           protocol      = "tcp"
         }]
+        enable_cloudwatch_logging              = true           # This is the key switch!
+        create_cloudwatch_log_group            = true
+        cloudwatch_log_group_name              = "/ecs/wordpress"
+        cloudwatch_log_group_use_name_prefix   = false
+        cloudwatch_log_group_class             = "STANDARD"
+        cloudwatch_log_group_retention_in_days = 14
 
         healthCheck = {
           command = ["CMD-SHELL",
@@ -467,6 +477,12 @@ task_definition = {
           hostPort      = 3306
           protocol      = "tcp"
         }]
+        enable_cloudwatch_logging              = true #              This is the key switch!
+        create_cloudwatch_log_group            = true
+        cloudwatch_log_group_name              = "/ecs/mysql"
+        cloudwatch_log_group_use_name_prefix   = false
+        cloudwatch_log_group_class             = "STANDARD"
+        cloudwatch_log_group_retention_in_days = 14
         healthCheck = {
           command     = ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD"]
           interval    = 30

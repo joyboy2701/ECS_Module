@@ -20,8 +20,9 @@ load_balancer = {
   name                            = "my-alb"
   target_port                     = 80
   protocol                        = "HTTP"
+  listner_port                    = 80
   load_balancer_type              = "application"
-  target_type                     = "instance"
+  target_type                     = "ip"
   internal                        = false
   enable_deletion_protection      = false
   idle_timeout                    = 120
@@ -79,6 +80,7 @@ cluster = {
   cloudwatch_log_group_kms_key_id        = ""
   cloudwatch_log_group_class             = "STANDARD"
   cloudwatch_log_group_tags              = { Environment = "dev" }
+  cloudwatch_log_group_kms_key_id        = "d33f023a-8e2f-47a5-8fa7-22adf1f65d13"
 }
 service = {
   wordpress = {
@@ -107,8 +109,17 @@ service = {
     security_group_name            = "wordpress-sg"
     security_group_use_name_prefix = true
     security_group_description     = "ECS service SG"
+    # security_group_ingress_rules = {
+    #   http = { cidr_ipv4 = "0.0.0.0/0", from_port = 80, to_port = 80, ip_protocol = "tcp" }
+    # }
     security_group_ingress_rules = {
-      http = { cidr_ipv4 = "0.0.0.0/0", from_port = 80, to_port = 80, ip_protocol = "tcp" }
+      http = { cidr_ipv4 = "10.0.0.0/24", from_port = 80, to_port = 80, ip_protocol = "tcp" },
+      lb_to_app = {
+        from_port   = 80
+        to_port     = 80
+        ip_protocol = "tcp"
+        description = "Load balancer to app"
+      },
     }
     security_group_egress_rules = {
       all = { cidr_ipv4 = "0.0.0.0/0", ip_protocol = "-1" }
@@ -155,6 +166,12 @@ task_definition = {
           containerPort = 80
           protocol      = "tcp"
         }]
+        enable_cloudwatch_logging              = true # This is the key switch!
+        create_cloudwatch_log_group            = true
+        cloudwatch_log_group_name              = "/ecs/wordpress"
+        cloudwatch_log_group_use_name_prefix   = false
+        cloudwatch_log_group_class             = "STANDARD"
+        cloudwatch_log_group_retention_in_days = 14
 
         healthCheck = {
           command = ["CMD-SHELL",
@@ -183,6 +200,12 @@ task_definition = {
           containerPort = 3306
           protocol      = "tcp"
         }]
+        enable_cloudwatch_logging              = true # This is the key switch!
+        create_cloudwatch_log_group            = true
+        cloudwatch_log_group_name              = "/ecs/mysql"
+        cloudwatch_log_group_use_name_prefix   = false
+        cloudwatch_log_group_class             = "STANDARD"
+        cloudwatch_log_group_retention_in_days = 14
         healthCheck = {
           command     = ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD"]
           interval    = 30

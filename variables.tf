@@ -33,6 +33,7 @@ variable "load_balancer" {
     action_type                     = string
     matcher                         = string
     healthCheck_path                = string
+    listner_port                    = number
 
     security_group_rules = optional(list(object({
       type            = string # "ingress" or "egress"

@@ -57,6 +57,7 @@ module "load_balancer" {
   healthcheck_healthy_timeout     = var.load_balancer.healthcheck_timeout
   healthCheck_path                = var.load_balancer.healthCheck_path
   matcher                         = var.load_balancer.matcher
+  listner_port                    = var.load_balancer.listner_port
 
   security_group_rules = try(var.load_balancer.security_group_rules, [])
   tags                 = try(var.load_balancer.tags, {})
@@ -75,7 +76,7 @@ module "ecs_cluster" {
   create_cloudwatch_log_group            = var.cluster.create_cloudwatch_log_group
   cloudwatch_log_group_name              = var.cluster.cloudwatch_log_group_name
   cloudwatch_log_group_retention_in_days = var.cluster.cloudwatch_log_group_retention_in_days
-  cloudwatch_log_group_kms_key_id        = data.aws_kms_key.wordpress.arn
+  cloudwatch_log_group_kms_key_id        = data.aws_kms_key.log_group_key.arn
   cloudwatch_log_group_class             = var.cluster.cloudwatch_log_group_class
   cloudwatch_log_group_tags              = var.cluster.cloudwatch_log_group_tags
 
@@ -109,12 +110,24 @@ module "ecs_service" {
   subnet_ids       = module.vpc.private_subnet_ids
   vpc_id           = module.vpc.vpc_id
 
-  create_security_group        = each.value.create_security_group
-  security_group_name          = each.value.security_group_name
-  security_group_egress_rules  = each.value.security_group_egress_rules
-  security_group_ingress_rules = each.value.security_group_ingress_rules
-  security_group_tags          = each.value.security_group_tags
+  create_security_group       = each.value.create_security_group
+  security_group_name         = each.value.security_group_name
+  security_group_egress_rules = each.value.security_group_egress_rules
+  # security_group_ingress_rules = each.value.security_group_ingress_rules
 
+  security_group_ingress_rules = merge(
+    each.value.security_group_ingress_rules,
+    {
+      # Add referenced_security_group_id to specific rules
+      lb_to_app = merge(
+        each.value.security_group_ingress_rules.lb_to_app,
+        {
+          referenced_security_group_id = module.load_balancer.sg_id
+        }
+      ),
+    }
+  )
+  security_group_tags = each.value.security_group_tags
 
   # Load Balancer
   load_balancer = {
@@ -147,8 +160,7 @@ module "task_definition" {
   track_latest             = each.value.track_latest
   current_region           = data.aws_region.current.region
 
-  container_definitions = each.value.container_definitions
-
+  container_definitions            = each.value.container_definitions
   create_task_execution_role       = each.value.create_task_execution_role
   task_execution_role_name         = each.value.task_execution_role_name
   task_execution_role_description  = each.value.task_execution_role_description

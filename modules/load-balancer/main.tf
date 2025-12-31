@@ -74,7 +74,7 @@ resource "aws_lb_target_group" "target_group" {
 
 resource "aws_lb_listener" "tcp_listner" {
   load_balancer_arn = aws_lb.load_balancer.arn
-  port              = var.target_port
+  port              = var.listner_port
   protocol          = var.protocol
 
   default_action {
