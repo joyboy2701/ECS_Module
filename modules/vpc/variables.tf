@@ -2,6 +2,8 @@ variable "vpc_name" {
   description = "Name of the VPC"
   type        = string
 }
+variable "availability_zone" {
+}
 
 variable "vpc_cidr" {
   description = "CIDR block for VPC"
@@ -21,20 +23,6 @@ variable "private_subnet_cidrs" {
   default     = ["10.0.4.0/24", "10.0.5.0/24"]
 }
 
-variable "azs" {
-  description = "Availability zones"
-  type        = list(string)
-  default     = ["us-east-1a", "us-east-1b"]
-}
-
-variable "environment" {
-  description = "Environment name"
-  type        = string
-}
-variable "subnet_types" {
-  description = "Map of subnet types"
-  type        = map(string)
-}
 variable "cidr_block" {
   description = "Cidr Block 0.0.0.0/0"
   type        = string
@@ -53,4 +41,7 @@ variable "enable_dns_support" {
 }
 variable "map_public_ip_on_launch" {
   type = bool
+}
+variable "tags" {
+  type = map(string)
 }

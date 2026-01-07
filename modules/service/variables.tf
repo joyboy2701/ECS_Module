@@ -135,12 +135,6 @@ variable "load_balancer" {
     container_port   = number
     elb_name         = optional(string)
     target_group_arn = optional(string)
-    advanced_configuration = optional(object({
-      alternate_target_group_arn = string
-      production_listener_rule   = string
-      role_arn                   = string
-      test_listener_rule         = optional(string)
-    }))
   })
   default = null
 }
@@ -251,10 +245,7 @@ variable "service_tags" {
   nullable    = false
 }
 
-
-################################################################################
 # Security Group
-################################################################################
 
 variable "create_security_group" {
   description = "Determines if a security group is created"

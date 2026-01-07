@@ -12,11 +12,6 @@ output "task_definition_revision" {
   value       = var.create_task_definition ? aws_ecs_task_definition.this[0].revision : null
 }
 
-output "task_execution_role_arn" {
-  description = "ARN of the task execution role"
-  value       = aws_iam_role.ecs_task_execution_role[0].arn
-}
-
 output "task_execution_role_name" {
   description = "Name of the task execution role"
   value       = var.create_task_execution_role ? aws_iam_role.ecs_task_execution_role[0].name : split("/", var.external_task_execution_role_arn)[1]

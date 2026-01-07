@@ -47,26 +47,12 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   role       = aws_iam_role.ecs_task_execution_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
-
-# Optional: Custom execution role policies
-resource "aws_iam_policy" "ecs_task_execution_custom" {
-  count = var.create_task_execution_role && var.task_execution_custom_policies != null ? 1 : 0
-
-  name        = "${var.task_execution_role_name}-custom"
-  description = "Custom policies for ECS task execution"
-  policy      = var.task_execution_custom_policies
-
-  tags = merge(var.tags, var.task_execution_role_tags)
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_custom" {
-  count = var.create_task_execution_role && var.task_execution_custom_policies != null ? 1 : 0
+resource "aws_iam_role_policy_attachment" "tasks_exec" {
+  for_each = { for k, v in var.tasks_exec_iam_role_policies : k => v if var.create_task_execution_role }
 
   role       = aws_iam_role.ecs_task_execution_role[0].name
-  policy_arn = aws_iam_policy.ecs_task_execution_custom[0].arn
+  policy_arn = each.value
 }
-
-
 
 # Single resource for task definition with clean inline container definitions
 resource "aws_ecs_task_definition" "this" {
@@ -87,6 +73,7 @@ resource "aws_ecs_task_definition" "this" {
 
         environment  = container.environment
         portMappings = coalesce(try(container.portMappings, container.port_mappings), [])
+        secrets      = container.secrets
 
         healthCheck = container.healthCheck
       },
@@ -120,8 +107,9 @@ resource "aws_ecs_task_definition" "this" {
     }
   }
 
-  execution_role_arn = aws_iam_role.ecs_task_execution_role[0].arn
+  execution_role_arn = try(aws_iam_role.ecs_task_execution_role[0].arn, var.external_task_execution_role_arn)
   family             = var.family
+  task_role_arn      = try(aws_iam_role.tasks[0].arn, var.tasks_iam_role_arn)
 
   memory       = var.memory
   network_mode = var.network_mode
@@ -165,6 +153,48 @@ resource "aws_ecs_task_definition" "this" {
   tags = merge(var.tags, var.task_tags)
 
   lifecycle {
-    create_before_destroy = true
+    create_before_destroy = false
   }
+}
+
+resource "aws_iam_role" "tasks" {
+  count = var.create_tasks_iam_role ? 1 : 0
+
+  name        = var.tasks_iam_role_use_name_prefix ? null : var.tasks_iam_role_name
+  name_prefix = var.tasks_iam_role_use_name_prefix ? "${var.tasks_iam_role_name}-" : null
+  path        = var.tasks_iam_role_path
+  description = var.tasks_iam_role_description
+
+  assume_role_policy    = var.tasks_iam_role_assume_policy
+  max_session_duration  = var.tasks_iam_role_max_session_duration
+  permissions_boundary  = var.tasks_iam_role_permissions_boundary
+  force_detach_policies = true
+
+  tags = merge(var.tags, var.tasks_iam_role_tags)
+}
+
+
+resource "aws_iam_policy" "tasks" {
+  count = var.create_tasks_iam_role && (var.tasks_iam_role_statements != null) ? 1 : 0
+
+  name        = var.tasks_iam_role_use_name_prefix ? null : var.tasks_iam_role_name
+  name_prefix = var.tasks_iam_role_use_name_prefix ? "${var.tasks_iam_role_name}-" : null
+  description = coalesce(var.tasks_iam_role_description, "Task role IAM policy")
+  policy      = var.tasks_iam_role_policy_json
+  path        = var.tasks_iam_role_path
+  tags        = merge(var.tags, var.tasks_iam_role_tags)
+}
+
+resource "aws_iam_role_policy_attachment" "tasks_internal" {
+  count = var.create_tasks_iam_role && (var.tasks_iam_role_statements != null) ? 1 : 0
+
+  role       = aws_iam_role.tasks[0].name
+  policy_arn = aws_iam_policy.tasks[0].arn
+}
+
+resource "aws_iam_role_policy_attachment" "tasks" {
+  for_each = { for k, v in var.tasks_iam_role_policies : k => v if var.create_tasks_iam_role }
+
+  role       = aws_iam_role.tasks[0].name
+  policy_arn = each.value
 }

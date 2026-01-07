@@ -1,8 +1,6 @@
 resource "aws_ecs_cluster" "this" {
   count = var.create ? 1 : 0
 
-  region = var.region
-
   dynamic "configuration" {
     for_each = var.configuration != null ? [var.configuration] : []
 
@@ -17,7 +15,6 @@ resource "aws_ecs_cluster" "this" {
       }
     }
   }
-
   name = var.name
 
   dynamic "setting" {
@@ -34,8 +31,6 @@ resource "aws_ecs_cluster" "this" {
 
 resource "aws_cloudwatch_log_group" "this" {
   count = var.create && var.create_cloudwatch_log_group ? 1 : 0
-
-  region = var.region
 
   name              = var.cloudwatch_log_group_name
   retention_in_days = var.cloudwatch_log_group_retention_in_days

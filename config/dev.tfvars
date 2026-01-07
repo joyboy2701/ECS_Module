@@ -1,14 +1,13 @@
+base_tags = {
+  Environment = "dev"
+  ManagedBy   = "Terraform"
+}
+
 vpc = {
-  vpc_name             = "my-wordpress-vpc"
-  vpc_cidr             = "10.0.0.0/24"
-  public_subnet_cidrs  = ["10.0.0.0/26", "10.0.0.64/26"] # Within 10.0.0.0/24
-  private_subnet_cidrs = ["10.0.0.128/26", "10.0.0.192/26"]
-  azs                  = ["us-east-1a", "us-east-1b"]
-  environment          = "dev"
-  subnet_types = {
-    public  = "public"
-    private = "private"
-  }
+  vpc_name                = "my-wordpress-vpc"
+  vpc_cidr                = "10.0.0.0/24"
+  public_subnet_cidrs     = ["10.0.0.0/26", "10.0.0.64/26"]
+  private_subnet_cidrs    = ["10.0.0.128/26", "10.0.0.192/26"]
   cidr_block              = "0.0.0.0/0"
   domain                  = "vpc"
   map_public_ip_on_launch = true
@@ -19,10 +18,8 @@ vpc = {
 cluster = {
   create = true
   name   = "dev-ecs-cluster"
-  region = "us-east-1"
   tags = {
-    Environment = "dev"
-    Project     = "wordpress-app"
+    Project = "wordpress-app"
   }
   setting = [
     {
@@ -33,23 +30,17 @@ cluster = {
   create_cloudwatch_log_group            = true
   cloudwatch_log_group_name              = "/aws/ecs/dev-ecs-cluster"
   cloudwatch_log_group_retention_in_days = 14
-  cloudwatch_log_group_kms_key_id        = ""
   cloudwatch_log_group_class             = "STANDARD"
   cloudwatch_log_group_tags              = { Environment = "dev" }
   cloudwatch_log_group_kms_key_id        = "d33f023a-8e2f-47a5-8fa7-22adf1f65d13"
 }
-
 load_balancer = {
   name                       = "my-alb"
-  target_port                = 80
   protocol                   = "HTTP"
-  listner_port               = 80
   load_balancer_type         = "application"
-  target_type                = "ip"
   internal                   = false
   enable_deletion_protection = false
   idle_timeout               = 120
-  action_type                = "forward"
 
   security_group_rules = [
     {
@@ -57,14 +48,6 @@ load_balancer = {
       description = "HTTP from internet"
       from_port   = 80
       to_port     = 80
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    },
-    {
-      type        = "ingress"
-      description = "HTTP from internet"
-      from_port   = 8080
-      to_port     = 8080
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
     },
@@ -116,32 +99,23 @@ load_balancer = {
       rules = {
         nginx_path = {
           priority         = 10
-          path_patterns    = ["/nginx"]
+          path_patterns    = ["/nginx*"]
           target_group_key = "nginx"
         }
       }
 
     },
-    nginx = {
-      port             = 8080
-      protocol         = "HTTP"
-      target_group_key = "nginx"
-    }
   }
-
   tags = {
-    Environment = "production"
     Application = "myapp"
-    ManagedBy   = "terraform"
   }
 }
-
+launch_type = "FARGATE"
 service = {
   wordpress = {
     create_service = true
     name           = "wordpress-service"
     desired_count  = 1
-    launch_type    = "FARGATE"
 
     platform_version                   = "LATEST"
     deployment_maximum_percent         = 200
@@ -174,18 +148,17 @@ service = {
     security_group_egress_rules = {
       all = { cidr_ipv4 = "0.0.0.0/0", ip_protocol = "-1" }
     }
-    security_group_tags = { Environment = "dev" }
+    security_group_tags = { Description = "custom service sg for every service" }
 
 
     tags = {
-      Environment = "dev"
+      Desc = "dev"
     }
   }
   nginx = {
     create_service = true
     name           = "nginx-service"
     desired_count  = 1
-    launch_type    = "FARGATE"
 
     platform_version                   = "LATEST"
     deployment_maximum_percent         = 200
@@ -218,12 +191,7 @@ service = {
     security_group_egress_rules = {
       all = { cidr_ipv4 = "0.0.0.0/0", ip_protocol = "-1" }
     }
-    security_group_tags = { Environment = "dev" }
 
-
-    tags = {
-      Environment = "dev"
-    }
   }
 }
 
@@ -240,10 +208,20 @@ task_definition = {
     cpu                      = 1024
     memory                   = 2048
     network_mode             = "awsvpc"
-    requires_compatibilities = ["FARGATE"]
-    launch_type              = "FARGATE"
-
     task_execution_role_name = "ecsTaskExecutionRole"
+    task_exec_role_policies = {
+      secrets = "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
+    }
+    create_tasks_role = true
+    task_role_name    = "my-app-task-role"
+
+    task_role_statements = [
+      {
+        actions   = ["s3:GetObject", "s3:PutObject"]
+        resources = ["arn:aws:s3:::my-data-bucket/*"]
+        effect    = "Allow"
+      },
+    ]
 
     ephemeral_storage = {
       size_in_gib = 21
@@ -276,11 +254,27 @@ task_definition = {
           startPeriod = 120
         }
 
+        secrets = [
+          {
+            name      = "WORDPRESS_DB_USER"
+            valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:username::"
+          },
+          {
+            name      = "WORDPRESS_DB_PASSWORD"
+            valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:password::"
+          },
+          {
+            name      = "WORDPRESS_DB_NAME"
+            valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:database::"
+          }
+        ]
+
+
         environment = [
           { name = "WORDPRESS_DB_HOST", value = "127.0.0.1:3306" },
-          { name = "WORDPRESS_DB_USER", value = "wpuser" },
-          { name = "WORDPRESS_DB_PASSWORD", value = "wppassword" },
-          { name = "WORDPRESS_DB_NAME", value = "wordpress" }
+          # { name = "WORDPRESS_DB_USER", value = "wpuser" },
+          # { name = "WORDPRESS_DB_PASSWORD", value = "wppassword" },
+          # { name = "WORDPRESS_DB_NAME", value = "wordpress" }
         ]
       }
 
@@ -308,29 +302,44 @@ task_definition = {
           startPeriod = 60
         }
 
-        environment = [
-          { name = "MYSQL_DATABASE", value = "wordpress" },
-          { name = "MYSQL_USER", value = "wpuser" },
-          { name = "MYSQL_PASSWORD", value = "wppassword" },
-          { name = "MYSQL_ROOT_PASSWORD", value = "rootpassword" }
+        # environment = [
+        #   { name = "MYSQL_DATABASE", value = "wordpress" },
+        #   { name = "MYSQL_USER", value = "wpuser" },
+        #   { name = "MYSQL_PASSWORD", value = "wppassword" },
+        #   { name = "MYSQL_ROOT_PASSWORD", value = "rootpassword" }
+        # ]
+        secrets = [
+          {
+            name      = "MYSQL_USER"
+            valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:username::"
+          },
+          {
+            name      = "MYSQL_PASSWORD"
+            valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:password::"
+          },
+          {
+            name      = "MYSQL_DATABASE"
+            valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:database::"
+          },
+          {
+            name      = "MYSQL_ROOT_PASSWORD"
+            valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:root_password::"
+          }
         ]
       }
     }
 
-    tags = {
-      Environment = "dev"
-    }
   }
   nginx = {
-    create_task_definition   = true
-    family                   = "nginx"
-    cpu                      = 1024
-    memory                   = 2048
-    network_mode             = "awsvpc"
-    requires_compatibilities = ["FARGATE"]
-    launch_type              = "FARGATE"
+    create_task_definition = true
+    family                 = "nginx"
+    cpu                    = 1024
+    memory                 = 2048
+    network_mode           = "awsvpc"
 
     task_execution_role_name = "ecsTaskExecutionRole_nginx"
+    create_tasks_role        = false
+    #  external_task_role_arn   = "arn:aws:iam::569023477847:role/my-app-task-role-20260105112735151900000002"
 
     ephemeral_storage = {
       size_in_gib = 21
@@ -347,18 +356,12 @@ task_definition = {
           containerPort = 8080
           protocol      = "tcp"
         }]
-        # command = [
-        #   "sh",
-        #   "-c",
-        #   "sed -i 's/listen       80;/listen       8080;/' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
-        # ]
         command                                = ["sh", "-c", "sed -i 's/listen       80;/listen       8080;/' /etc/nginx/conf.d/default.conf && mkdir -p /usr/share/nginx/html/nginx && cp /usr/share/nginx/html/index.html /usr/share/nginx/html/nginx/ && nginx -g 'daemon off;'"]
         create_cloudwatch_log_group            = true
         cloudwatch_log_group_name              = "/ecs/nginx"
         cloudwatch_log_group_use_name_prefix   = false
         cloudwatch_log_group_class             = "STANDARD"
         cloudwatch_log_group_retention_in_days = 14
-
         healthCheck = {
           command     = ["CMD-SHELL", "curl -f http://localhost:8080/ || exit 1"]
           interval    = 30
@@ -369,10 +372,6 @@ task_definition = {
         environment = [
         ]
       }
-    }
-
-    tags = {
-      Environment = "dev"
     }
   }
 }

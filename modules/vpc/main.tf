@@ -3,8 +3,8 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = var.dns_host_name
   enable_dns_support   = var.enable_dns_support
   tags = {
-    Name        = "${var.vpc_name}-${var.environment}"
-    Environment = var.environment
+    Name = "${var.vpc_name}"
+
   }
 }
 
@@ -12,8 +12,8 @@ resource "aws_vpc" "main" {
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
   tags = {
-    Name        = "${var.vpc_name}-igw-${var.environment}"
-    Environment = var.environment
+    Name = "${var.vpc_name}-igw"
+
   }
 }
 
@@ -22,12 +22,10 @@ resource "aws_subnet" "public" {
   count                   = length(var.public_subnet_cidrs)
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.public_subnet_cidrs[count.index]
-  availability_zone       = var.azs[count.index % length(var.azs)]
+  availability_zone       = var.availability_zone[count.index]
   map_public_ip_on_launch = var.map_public_ip_on_launch
   tags = {
-    Name        = "${var.vpc_name}-public-${count.index + 1}-${var.environment}"
-    Environment = var.environment
-    Type        = var.subnet_types.public
+    Name = "${var.vpc_name}-public-${count.index + 1}"
   }
 }
 
@@ -36,11 +34,9 @@ resource "aws_subnet" "private" {
   count             = length(var.private_subnet_cidrs)
   vpc_id            = aws_vpc.main.id
   cidr_block        = var.private_subnet_cidrs[count.index]
-  availability_zone = var.azs[count.index % length(var.azs)]
+  availability_zone = var.availability_zone[count.index]
   tags = {
-    Name        = "${var.vpc_name}-private-${count.index + 1}-${var.environment}"
-    Environment = var.environment
-    Type        = var.subnet_types.private
+    Name = "${var.vpc_name}-private-${count.index + 1}"
   }
 }
 
@@ -52,8 +48,7 @@ resource "aws_route_table" "public" {
     gateway_id = aws_internet_gateway.main.id
   }
   tags = {
-    Name        = "${var.vpc_name}-public-rt-${var.environment}"
-    Environment = var.environment
+    Name = "${var.vpc_name}-public-rt"
   }
 }
 
@@ -67,8 +62,7 @@ resource "aws_route_table_association" "public" {
 resource "aws_eip" "nat" {
   domain = var.domain
   tags = {
-    Name        = "${var.vpc_name}-nat-eip-${var.environment}"
-    Environment = var.environment
+    Name = "${var.vpc_name}-nat-eip"
   }
 }
 
@@ -76,8 +70,7 @@ resource "aws_nat_gateway" "main" {
   allocation_id = aws_eip.nat.id
   subnet_id     = aws_subnet.public[0].id
   tags = {
-    Name        = "${var.vpc_name}-nat-${var.environment}"
-    Environment = var.environment
+    Name = "${var.vpc_name}-nat"
   }
 }
 
@@ -91,8 +84,7 @@ resource "aws_route_table" "private" {
   }
 
   tags = {
-    Name        = "${var.vpc_name}-private-rt-${var.environment}"
-    Environment = var.environment
+    Name = "${var.vpc_name}-private-rt"
   }
 }
 

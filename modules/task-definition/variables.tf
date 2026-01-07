@@ -11,6 +11,10 @@ variable "container_definitions" {
     command           = optional(list(string))
     entrypoint        = optional(list(string))
     environment       = optional(list(map(string)))
+    secrets = optional(list(object({
+      name      = string
+      valueFrom = string
+    })), [])
     portMappings = optional(list(object({
       containerPort = number
       hostPort      = optional(number)
@@ -176,4 +180,113 @@ variable "task_tags" {
 }
 variable "current_region" {
   type = string
+}
+variable "tasks_exec_iam_role_policies" {
+  description = "Map of additioanl IAM role policy ARNs to attach to the IAM role"
+  type        = map(string)
+  default     = {}
+  nullable    = false
+}
+
+# Tasks - IAM role
+
+variable "create_tasks_iam_role" {
+  description = "Determines whether the ECS tasks IAM role should be created"
+  type        = bool
+  default     = true
+  nullable    = false
+}
+
+variable "tasks_iam_role_arn" {
+  description = "Existing IAM role ARN"
+  type        = string
+  default     = null
+}
+
+variable "tasks_iam_role_name" {
+  description = "Name to use on IAM role created"
+  type        = string
+  default     = null
+}
+
+variable "tasks_iam_role_use_name_prefix" {
+  description = "Determines whether the IAM role name (`tasks_iam_role_name`) is used as a prefix"
+  type        = bool
+  default     = true
+  nullable    = false
+}
+
+variable "tasks_iam_role_path" {
+  description = "IAM role path"
+  type        = string
+  default     = null
+}
+
+variable "tasks_iam_role_description" {
+  description = "Description of the role"
+  type        = string
+  default     = null
+}
+
+variable "tasks_iam_role_permissions_boundary" {
+  description = "ARN of the policy that is used to set the permissions boundary for the IAM role"
+  type        = string
+  default     = null
+}
+
+variable "tasks_iam_role_tags" {
+  description = "A map of additional tags to add to the IAM role created"
+  type        = map(string)
+  default     = {}
+  nullable    = false
+}
+
+variable "tasks_iam_role_policies" {
+  description = "Map of additioanl IAM role policy ARNs to attach to the IAM role"
+  type        = map(string)
+  default     = {}
+  nullable    = false
+}
+
+variable "tasks_iam_role_statements" {
+  description = "A map of IAM policy [statements](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document#statement) for custom permission usage"
+  type = list(object({
+    sid           = optional(string)
+    actions       = optional(list(string))
+    not_actions   = optional(list(string))
+    effect        = optional(string)
+    resources     = optional(list(string))
+    not_resources = optional(list(string))
+    principals = optional(list(object({
+      type        = string
+      identifiers = list(string)
+    })))
+    not_principals = optional(list(object({
+      type        = string
+      identifiers = list(string)
+    })))
+    condition = optional(list(object({
+      test     = string
+      values   = list(string)
+      variable = string
+    })))
+  }))
+  default = null
+}
+
+variable "tasks_iam_role_max_session_duration" {
+  description = "Maximum session duration (in seconds) for ECS tasks role. Default is 3600."
+  type        = number
+  default     = null
+}
+variable "tasks_iam_role_assume_policy" {
+  type        = string
+  default     = null
+  description = "Pre-generated assume role policy JSON from root level"
+}
+
+variable "tasks_iam_role_policy_json" {
+  type        = string
+  default     = null
+  description = "Pre-generated IAM policy JSON from root level"
 }
