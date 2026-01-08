@@ -166,7 +166,7 @@ resource "aws_iam_role" "tasks" {
   description = var.tasks_iam_role_description
 
   # assume_role_policy    = var.tasks_iam_role_assume_policy
-  assume_role_policy = data.aws_iam_policy_document.task_role_assume[0].json
+  assume_role_policy    = data.aws_iam_policy_document.task_role_assume[0].json
   max_session_duration  = var.tasks_iam_role_max_session_duration
   permissions_boundary  = var.tasks_iam_role_permissions_boundary
   force_detach_policies = true
@@ -183,8 +183,8 @@ resource "aws_iam_policy" "tasks" {
   description = coalesce(var.tasks_iam_role_description, "Task role IAM policy")
   # policy      = var.tasks_iam_role_policy_json
   policy = data.aws_iam_policy_document.task_role[0].json
-  path        = var.tasks_iam_role_path
-  tags        = merge(var.tags, var.tasks_iam_role_tags)
+  path   = var.tasks_iam_role_path
+  tags   = merge(var.tags, var.tasks_iam_role_tags)
 }
 
 resource "aws_iam_role_policy_attachment" "tasks_internal" {

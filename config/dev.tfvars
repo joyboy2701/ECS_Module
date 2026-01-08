@@ -221,7 +221,6 @@ task_definition = {
         effect    = "Allow"
       },
     ]
-
     ephemeral_storage = {
       size_in_gib = 21
     }
@@ -374,3 +373,4 @@ task_definition = {
     }
   }
 }
+

@@ -1,6 +1,6 @@
 data "aws_region" "current" {}
 data "aws_iam_policy_document" "task_role_assume" {
-  count=try(var.create_tasks_iam_role, false)? 1:0
+  count = try(var.create_tasks_iam_role, false) ? 1 : 0
 
   statement {
     sid     = "ECSTasksAssumeRole"
@@ -14,8 +14,8 @@ data "aws_iam_policy_document" "task_role_assume" {
 }
 
 data "aws_iam_policy_document" "task_role" {
-  count= try(var.create_tasks_iam_role, false)? 1:0
-  
+  count = try(var.create_tasks_iam_role, false) ? 1 : 0
+
 
   dynamic "statement" {
     for_each = var.tasks_iam_role_statements

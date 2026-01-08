@@ -20,18 +20,18 @@ variable "tags" {
 
 # Service
 
-variable "is_fargate" {
-  type        = bool
-  description = "Whether the service is using FARGATE launch type"
-}
+# variable "is_fargate" {
+#   type        = bool
+#   description = "Whether the service is using FARGATE launch type"
+# }
 
-variable "network_configuration" {
-  type = object({
-    security_groups  = list(string)
-    assign_public_ip = bool
-  })
-  description = "ECS service network configuration"
-}
+# variable "network_configuration" {
+#   type = object({
+#     security_groups  = list(string)
+#     assign_public_ip = bool
+#   })
+#   description = "ECS service network configuration"
+# }
 
 variable "ignore_task_definition_changes" {
   description = "Whether changes to service `task_definition` changes should be ignored"

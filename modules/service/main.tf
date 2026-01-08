@@ -1,3 +1,25 @@
+locals {
+  service_configs = {
+    is_fargate            = upper(var.launch_type) == "FARGATE"
+    create_service        = var.create_service
+    create_security_group = var.create_service && var.network_mode == "awsvpc"
+
+    security_group_name = coalesce(
+      var.security_group_name,
+      var.name,
+      "NotProvided"
+    )
+    # Only set network_configuration for Fargate or awsvpc tasks
+    network_configuration = (upper(var.launch_type) == "FARGATE" || var.network_mode == "awsvpc") ? {
+      assign_public_ip = var.assign_public_ip
+      security_groups  = var.security_group_ids
+    } : null
+
+    log_group_name = coalesce(
+      "/aws/ecs/${var.name}"
+    )
+  }
+}
 resource "aws_ecs_service" "this" {
   count = var.create_service && !var.ignore_task_definition_changes ? 1 : 0
 
@@ -20,7 +42,7 @@ resource "aws_ecs_service" "this" {
   desired_count                      = var.desired_count
   force_new_deployment               = var.force_new_deployment
   launch_type                        = var.capacity_provider_strategy != null ? null : var.launch_type
-  platform_version                   = var.is_fargate ? var.platform_version : null
+  platform_version                   = local.service_configs.is_fargate ? var.platform_version : null
 
   load_balancer {
     container_name   = var.load_balancer.container_name
@@ -32,7 +54,7 @@ resource "aws_ecs_service" "this" {
   name = var.name
 
   dynamic "network_configuration" {
-    for_each = (var.launch_type == "FARGATE" || var.network_mode == "awsvpc") && var.network_configuration != null ? [var.network_configuration] : []
+    for_each = (var.launch_type == "FARGATE" || var.network_mode == "awsvpc") && local.service_configs.network_configuration != null ? [local.service_configs.network_configuration] : []
 
     content {
       assign_public_ip = network_configuration.value.assign_public_ip

@@ -20,10 +20,9 @@ and production-ready.
 
 ## 📁 Repository Structure
 ```
-   .
+.
 ├── config
 │   └── dev.tfvars
-├── data.tf
 ├── locals.tf
 ├── main.tf
 ├── modules
@@ -32,6 +31,7 @@ and production-ready.
 │   │   ├── outputs.tf
 │   │   └── variables.tf
 │   ├── ec2_capacity
+│   │   ├── locals.tf
 │   │   ├── main.tf
 │   │   ├── outputs.tf
 │   │   └── variable.tf
@@ -44,6 +44,7 @@ and production-ready.
 │   │   ├── outputs.tf
 │   │   └── variables.tf
 │   ├── task-definition
+│   │   ├── data.tf
 │   │   ├── main.tf
 │   │   ├── outputs.tf
 │   │   └── variables.tf
@@ -77,8 +78,7 @@ vpc
 | `environment`             | string       | Environment name (dev/stage/prod)   |
 | `subnet_types`            | map(string)  | Mapping of subnet names to type     |
 | `public_subnet_cidrs`     | list(string) | CIDR blocks for public subnets      |
-| `private_subnet_cidrs`    | list(string) | CIDR blocks for private subnets     |
-| `azs`                     | list(string) | Availability Zones                  |
+| `private_subnet_cidrs`    | list(string) | CIDR blocks for private subnets     |               
 | `cidr_block`              | string       | Allowed CIDR for routing / SG rules |
 | `domain`                  | string       | Domain label for VPC resources      |
 | `map_public_ip_on_launch` | bool         | Assign public IPs to instances      |
@@ -91,7 +91,7 @@ load_balancer
 | --------------------------------- | ------------ | ---------------------------------- |
 | `name`                            | string       | Load balancer name                 |
 | `target_port`                     | number       | Target group port                  |
-| `listnert_port`                   | number       | Listner  port  80 for HTTP/443 for HTTPS                 |
+| `listnert_port`                   | number       | Listner  port  80 for HTTP/ 443 for HTTPS                 |
 | `protocol`                        | string       | Listener protocol                  |
 | `load_balancer_type`              | string       | ALB or NLB                         |
 | `target_type`                     | string       | `instance` (EC2) or `ip` (Fargate) |
@@ -202,41 +202,58 @@ terraform apply -var-file=config/dev.tfvars
 
 When using EC2 launch type, you must define the ec2_capacity block to provision Auto Scaling capacity for the ECS cluster.
 ```
-ec2_capacity = {
-  instance_type                  = "t2.medium"
-  desired_capacity               = 1
-  min_size                       = 1
-  max_size                       = 3
-  managed_termination_protection = "DISABLED"
-  maximum_scaling_step_size      = 1000
-  minimum_scaling_step_size      = 1
-  target_capacity                = 100
-  managed_scaling_status         = "ENABLED"
-  sg_name                        = "wordpress-ec2-capacity-sg"
+ecs_ec2_capacity = {
+  create          = true
+  name            = "ecs-ec2-prod"
+  cluster_name    = "prod-ecs-cluster"
+  use_name_prefix = true
+  sg_name         = "instance_sg"
 
   security_group_rules = [
     {
-      type        = "ingress"
-      description = "HTTP from internet"
-      from_port   = 80
-      to_port     = 80
-      protocol    = "tcp"
-      cidr_blocks = ["10.0.0.0/16"]
+      type       = "ingress"
+      from_port  = 80
+      to_port    = 80
+      protocol   = "tcp"
+      cidr_block = ["10.0.0.0/24"]
+    },
+    {
+      type       = "ingress"
+      from_port  = 8080
+      to_port    = 8080
+      protocol   = "tcp"
+      cidr_block = ["10.0.0.0/24"]
     },
     {
       type        = "egress"
-      description = "Allow all outbound"
       from_port   = 0
       to_port     = 0
       protocol    = "-1"
       cidr_blocks = ["0.0.0.0/0"]
-    }
+    },
   ]
 
+  min_size         = 1
+  max_size         = 4
+  desired_capacity = 2
+
+  instance_type = "t3.large"
+
+  create_iam_instance_profile = true
+  iam_role_name               = "ecs-ec2-role"
+  iam_role_policies = {
+    ecs = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+    ssm = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
+
+  managed_scaling_status         = "ENABLED"
+  target_capacity                = 100
+  minimum_scaling_step_size      = 1
+  maximum_scaling_step_size      = 4
+  managed_termination_protection = "ENABLED"
+
   tags = {
-    Environment = "production"
-    Application = "myapp"
-    ManagedBy   = "terraform"
+    Owner = "platform-team"
   }
 }
 ```
@@ -248,16 +265,10 @@ This example deploys WordPress and MySQL on ECS using **EC2 launch
 type**, an **ALB with instance targets**, and `network_mode = host`.
 ```
 vpc = {
-  vpc_name             = "my-wordpress-vpc"
-  vpc_cidr             = "10.0.0.0/24"
-  public_subnet_cidrs  = ["10.0.0.0/26", "10.0.0.64/26"] # Within 10.0.0.0/24
-  private_subnet_cidrs = ["10.0.0.128/26", "10.0.0.192/26"]
-  azs                  = ["us-east-1a", "us-east-1b"]
-  environment          = "dev"
-  subnet_types = {
-    public  = "public"
-    private = "private"
-  }
+  vpc_name                = "my-wordpress-vpc"
+  vpc_cidr                = "10.0.0.0/24"
+  public_subnet_cidrs     = ["10.0.0.0/26", "10.0.0.64/26"]
+  private_subnet_cidrs    = ["10.0.0.128/26", "10.0.0.192/26"]
   cidr_block              = "0.0.0.0/0"
   domain                  = "vpc"
   map_public_ip_on_launch = true
@@ -265,56 +276,11 @@ vpc = {
   dns_host_name           = true
 
 }
-load_balancer = {
-  name                            = "my-alb"
-  target_port                     = 80
-  protocol                        = "HTTP"
-  load_balancer_type              = "application"
-  target_type                     = "instance"
-  internal                        = false
-  enable_deletion_protection      = false
-  idle_timeout                    = 120
-  healthcheck_healthy_threshold   = 2
-  healthcheck_unhealthy_threshold = 2
-  healthcheck_timeout             = 40
-  healthcheck_interval            = 60
-  action_type                     = "forward"
-  healthCheck_path                = "/wp-login.php"
-  matcher                         = "200-399"
-
-  security_group_rules = [
-    {
-      type        = "ingress"
-      description = "HTTP from internet"
-      from_port   = 80
-      to_port     = 80
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    },
-    {
-      type        = "egress"
-      description = "Allow all outbound"
-      from_port   = 0
-      to_port     = 0
-      protocol    = "-1"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  ]
-
-  tags = {
-    Environment = "production"
-    Application = "myapp"
-    ManagedBy   = "terraform"
-  }
-}
-
 cluster = {
   create = true
   name   = "dev-ecs-cluster"
-  region = "us-east-1"
   tags = {
-    Environment = "dev"
-    Project     = "wordpress-app"
+    Project = "wordpress-app"
   }
   setting = [
     {
@@ -325,22 +291,18 @@ cluster = {
   create_cloudwatch_log_group            = true
   cloudwatch_log_group_name              = "/aws/ecs/dev-ecs-cluster"
   cloudwatch_log_group_retention_in_days = 14
-  cloudwatch_log_group_kms_key_id        = ""
   cloudwatch_log_group_class             = "STANDARD"
   cloudwatch_log_group_tags              = { Environment = "dev" }
+  cloudwatch_log_group_kms_key_id        = "d33f023a-8e2f-47a5-8fa7-22adf1f65d13"
 }
+load_balancer = {
+  name                       = "my-alb"
+  protocol                   = "HTTP"
+  load_balancer_type         = "application"
+  internal                   = false
+  enable_deletion_protection = false
+  idle_timeout               = 120
 
-ec2_capacity = {
-  instance_type                  = "t2.medium"
-  desired_capacity               = 1
-  min_size                       = 1
-  max_size                       = 3
-  managed_termination_protection = "DISABLED"
-  maximum_scaling_step_size      = 1000
-  minimum_scaling_step_size      = 1
-  target_capacity                = 100
-  managed_scaling_status         = "ENABLED"
-  sg_name                        = "wordpress-ec2-capacity-sg"
   security_group_rules = [
     {
       type        = "ingress"
@@ -348,7 +310,7 @@ ec2_capacity = {
       from_port   = 80
       to_port     = 80
       protocol    = "tcp"
-      cidr_blocks = ["10.0.0.0/16"]
+      cidr_blocks = ["0.0.0.0/0"]
     },
     {
       type        = "egress"
@@ -359,20 +321,62 @@ ec2_capacity = {
       cidr_blocks = ["0.0.0.0/0"]
     }
   ]
+
+  target_groups = {
+    wordpress = {
+      name        = "wordpress-tg"
+      port        = 80
+      protocol    = "HTTP"
+      target_type = "instance"
+      health_check = { # ← CORRECT: health_check object
+        path                = "/wp-login.php"
+        matcher             = "200-399"
+        interval            = 30
+        timeout             = 5
+        healthy_threshold   = 3
+        unhealthy_threshold = 3
+      }
+    },
+    nginx = {
+      name        = "nginx-tg"
+      port        = 8080
+      protocol    = "HTTP"
+      target_type = "instance"
+      health_check = {
+        path                = "/"
+        matcher             = "200-399"
+        interval            = 30
+        timeout             = 5
+        healthy_threshold   = 3
+        unhealthy_threshold = 3
+      }
+    },
+  }
+  listeners = {
+    http = {
+      port             = 80
+      protocol         = "HTTP"
+      target_group_key = "wordpress" # Default routing
+      rules = {
+        nginx_path = {
+          priority         = 10
+          path_patterns    = ["/nginx*"]
+          target_group_key = "nginx"
+        }
+      }
+
+    },
+  }
   tags = {
-    Environment = "production"
     Application = "myapp"
-    ManagedBy   = "terraform"
   }
 }
-
+launch_type = "EC2"
 service = {
   wordpress = {
-    create         = true
     create_service = true
     name           = "wordpress-service"
     desired_count  = 1
-    launch_type    = "EC2"
 
     platform_version                   = "LATEST"
     deployment_maximum_percent         = 200
@@ -384,30 +388,78 @@ service = {
     assign_public_ip = false
 
     load_balancer = {
-      wordpress_lb = {
-        container_name = "wordpress"
-        container_port = 80
-      }
+
+      container_name = "wordpress"
+      container_port = 80
+
     }
     create_security_group          = true
     security_group_name            = "wordpress-sg"
     security_group_use_name_prefix = true
     security_group_description     = "ECS service SG"
     security_group_ingress_rules = {
-      http = { cidr_ipv4 = "0.0.0.0/0", from_port = 80, to_port = 80, ip_protocol = "tcp" }
+      http = { cidr_ipv4 = "10.0.0.0/24", from_port = 80, to_port = 80, ip_protocol = "tcp" },
+      lb_to_app = {
+        from_port   = 80
+        to_port     = 80
+        ip_protocol = "tcp"
+        description = "Load balancer to app"
+      },
     }
     security_group_egress_rules = {
       all = { cidr_ipv4 = "0.0.0.0/0", ip_protocol = "-1" }
     }
-    security_group_tags = { Environment = "dev" }
+    security_group_tags = { Description = "custom service sg for every service" }
 
 
     tags = {
-      Environment = "dev"
+      Desc = "dev"
     }
   }
-}
 
+  nginx = {
+    create_service = true
+    name           = "nginx-service"
+    desired_count  = 1
+
+    platform_version                   = "LATEST"
+    deployment_maximum_percent         = 200
+    deployment_minimum_healthy_percent = 100
+    scheduling_strategy                = "REPLICA"
+    propagate_tags                     = "SERVICE"
+    wait_for_steady_state              = false
+
+    assign_public_ip = false
+
+    load_balancer = {
+
+      container_name = "nginx"
+      container_port = 8080
+
+    }
+    create_security_group          = true
+    security_group_name            = "nginx-sg"
+    security_group_use_name_prefix = true
+    security_group_description     = "ECS service SG for nginx"
+    security_group_ingress_rules = {
+      http = { cidr_ipv4 = "10.0.0.0/24", from_port = 8080, to_port = 8080, ip_protocol = "tcp" },
+      lb_to_app = {
+        from_port   = 8080
+        to_port     = 8080
+        ip_protocol = "tcp"
+        description = "Load balancer to app"
+      },
+    }
+    security_group_egress_rules = {
+      all = { cidr_ipv4 = "0.0.0.0/0", ip_protocol = "-1" }
+    }
+
+  }
+}
+base_tags = {
+  Environment = "dev"
+  ManagedBy   = "Terraform"
+}
 task_definition = {
   wordpress = {
     dependsOn = [
@@ -421,11 +473,20 @@ task_definition = {
     cpu                      = 1024
     memory                   = 2048
     network_mode             = "host"
-    requires_compatibilities = ["EC2"]
-    launch_type              = "EC2"
-
     task_execution_role_name = "ecsTaskExecutionRole"
+    task_exec_role_policies = {
+      secrets = "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
+    }
+    create_tasks_role = true
+    task_role_name    = "my-app-task-role"
 
+    task_role_statements = [
+      {
+        actions   = ["s3:GetObject", "s3:PutObject"]
+        resources = ["arn:aws:s3:::my-data-bucket/*"]
+        effect    = "Allow"
+      },
+    ]
     ephemeral_storage = {
       size_in_gib = 21
     }
@@ -439,10 +500,9 @@ task_definition = {
 
         portMappings = [{
           containerPort = 80
-          hostPort      = 80
           protocol      = "tcp"
         }]
-        enable_cloudwatch_logging              = true           # This is the key switch!
+        enable_cloudwatch_logging              = true # This is the key switch!
         create_cloudwatch_log_group            = true
         cloudwatch_log_group_name              = "/ecs/wordpress"
         cloudwatch_log_group_use_name_prefix   = false
@@ -457,6 +517,22 @@ task_definition = {
           retries     = 3
           startPeriod = 120
         }
+
+        # secrets = [
+        #   {
+        #     name      = "WORDPRESS_DB_USER"
+        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:username::"
+        #   },
+        #   {
+        #     name      = "WORDPRESS_DB_PASSWORD"
+        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:password::"
+        #   },
+        #   {
+        #     name      = "WORDPRESS_DB_NAME"
+        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:database::"
+        #   }
+        # ]
+
 
         environment = [
           { name = "WORDPRESS_DB_HOST", value = "127.0.0.1:3306" },
@@ -474,10 +550,9 @@ task_definition = {
 
         portMappings = [{
           containerPort = 3306
-          hostPort      = 3306
           protocol      = "tcp"
         }]
-        enable_cloudwatch_logging              = true #              This is the key switch!
+        enable_cloudwatch_logging              = true # This is the key switch!
         create_cloudwatch_log_group            = true
         cloudwatch_log_group_name              = "/ecs/mysql"
         cloudwatch_log_group_use_name_prefix   = false
@@ -497,12 +572,125 @@ task_definition = {
           { name = "MYSQL_PASSWORD", value = "wppassword" },
           { name = "MYSQL_ROOT_PASSWORD", value = "rootpassword" }
         ]
+        # secrets = [
+        #   {
+        #     name      = "MYSQL_USER"
+        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:username::"
+        #   },
+        #   {
+        #     name      = "MYSQL_PASSWORD"
+        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:password::"
+        #   },
+        #   {
+        #     name      = "MYSQL_DATABASE"
+        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:database::"
+        #   },
+        #   {
+        #     name      = "MYSQL_ROOT_PASSWORD"
+        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:root_password::"
+        #   }
+        # ]
       }
     }
 
-    tags = {
-      Environment = "dev"
+  }
+  nginx = {
+    create_task_definition = true
+    family                 = "nginx"
+    cpu                    = 1024
+    memory                 = 2048
+    network_mode           = "host"
+
+    task_execution_role_name = "ecsTaskExecutionRole_nginx"
+    create_tasks_role        = false
+    #  external_task_role_arn   = "arn:aws:iam::569023477847:role/my-app-task-role-20260105112735151900000002"
+
+    ephemeral_storage = {
+      size_in_gib = 21
     }
+
+    container_definitions = {
+      nginx = {
+        image     = "nginx:alpine"
+        cpu       = 256
+        memory    = 512
+        essential = true
+
+        portMappings = [{
+          containerPort = 8080
+          protocol      = "tcp"
+        }]
+        command                                = ["sh", "-c", "sed -i 's/listen       80;/listen       8080;/' /etc/nginx/conf.d/default.conf && mkdir -p /usr/share/nginx/html/nginx && cp /usr/share/nginx/html/index.html /usr/share/nginx/html/nginx/ && nginx -g 'daemon off;'"]
+        create_cloudwatch_log_group            = true
+        cloudwatch_log_group_name              = "/ecs/nginx"
+        cloudwatch_log_group_use_name_prefix   = false
+        cloudwatch_log_group_class             = "STANDARD"
+        cloudwatch_log_group_retention_in_days = 14
+        healthCheck = {
+          command     = ["CMD-SHELL", "curl -f http://localhost:8080/ || exit 1"]
+          interval    = 30
+          timeout     = 5
+          retries     = 3
+          startPeriod = 120
+        }
+        environment = [
+        ]
+      }
+    }
+  }
+}
+ecs_ec2_capacity = {
+  create          = true
+  name            = "ecs-ec2-prod"
+  cluster_name    = "prod-ecs-cluster"
+  use_name_prefix = true
+  sg_name         = "instance_sg"
+
+  security_group_rules = [
+    {
+      type       = "ingress"
+      from_port  = 80
+      to_port    = 80
+      protocol   = "tcp"
+      cidr_block = ["10.0.0.0/24"]
+    },
+    {
+      type       = "ingress"
+      from_port  = 8080
+      to_port    = 8080
+      protocol   = "tcp"
+      cidr_block = ["10.0.0.0/24"]
+    },
+    {
+      type        = "egress"
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+    },
+  ]
+
+  min_size         = 1
+  max_size         = 4
+  desired_capacity = 2
+
+  instance_type = "t3.large"
+
+  create_iam_instance_profile = true
+  iam_role_name               = "ecs-ec2-role"
+  iam_role_policies = {
+    ecs = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+    ssm = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
+
+  managed_scaling_status         = "ENABLED"
+  target_capacity                = 100
+  minimum_scaling_step_size      = 1
+  maximum_scaling_step_size      = 4
+  managed_termination_protection = "ENABLED"
+
+  tags = {
+    Owner = "platform-team"
   }
 }
 ```

@@ -3,7 +3,7 @@ data "aws_kms_key" "log_group_key" {
 }
 resource "aws_ecs_cluster" "this" {
   count = var.create ? 1 : 0
-  
+
   dynamic "configuration" {
     for_each = var.configuration != null ? [var.configuration] : []
 

@@ -144,9 +144,9 @@ module "load_balancer" {
 module "ecs_service" {
   source = "./modules/service"
 
-  for_each                           = var.service
-  is_fargate                         = local.service_configs[each.key].is_fargate
-  network_configuration              = local.service_configs[each.key].network_configuration
+  for_each = var.service
+  # is_fargate                         = local.service_configs[each.key].is_fargate
+  # network_configuration              = local.service_configs[each.key].network_configuration
   create_service                     = each.value.create_service
   ignore_task_definition_changes     = each.value.ignore_task_definition_changes
   cluster_arn                        = module.ecs_cluster.arn
@@ -227,11 +227,8 @@ module "task_definition" {
   tasks_iam_role_tags                 = merge(var.base_tags, try(each.value.task_role_tags))
   tasks_iam_role_statements           = try(each.value.task_role_statements)
 
-  # tasks_iam_role_policies = try(each.value.task_role_policies)
-
-  # tasks_iam_role_assume_policy = each.value.tasks_iam_role_assume_policy
-  # tasks_iam_role_policy_json   = each.value.tasks_iam_role_policy_json
-  tasks_iam_role_arn           = try(each.value.external_task_role_arn)
+  tasks_iam_role_policies = try(each.value.task_role_policies)
+  tasks_iam_role_arn      = try(each.value.external_task_role_arn)
 
   ephemeral_storage = each.value.ephemeral_storage
   volumes           = each.value.volumes
