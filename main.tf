@@ -3,7 +3,6 @@ module "vpc" {
   vpc_name                = var.vpc.vpc_name
   vpc_cidr                = var.vpc.vpc_cidr
   cidr_block              = var.vpc.cidr_block
-  availability_zone       = data.aws_availability_zones.available.names
   public_subnet_cidrs     = var.vpc.public_subnet_cidrs
   private_subnet_cidrs    = var.vpc.private_subnet_cidrs
   domain                  = var.vpc.domain
@@ -25,7 +24,7 @@ module "ecs_cluster" {
   create_cloudwatch_log_group            = var.cluster.create_cloudwatch_log_group
   cloudwatch_log_group_name              = var.cluster.cloudwatch_log_group_name
   cloudwatch_log_group_retention_in_days = var.cluster.cloudwatch_log_group_retention_in_days
-  cloudwatch_log_group_kms_key_id        = data.aws_kms_key.log_group_key.arn
+  cloudwatch_log_group_kms_key_id        = var.cluster.cloudwatch_log_group_kms_key_id
   cloudwatch_log_group_class             = var.cluster.cloudwatch_log_group_class
   cloudwatch_log_group_tags              = merge(var.base_tags, var.cluster.cloudwatch_log_group_tags)
 }
@@ -49,7 +48,6 @@ module "ecs_ec2_capacity" {
   health_check_type                              = var.ecs_ec2_capacity.health_check_type
   health_check_grace_period                      = var.ecs_ec2_capacity.health_check_grace_period
   create_launch_template                         = var.ecs_ec2_capacity.create_launch_template
-  image_id                                       = data.aws_ami.ecs.id
   instance_type                                  = var.ecs_ec2_capacity.instance_type
   key_name                                       = var.ecs_ec2_capacity.key_name
   create_iam_instance_profile                    = var.ecs_ec2_capacity.create_iam_instance_profile
@@ -68,8 +66,6 @@ module "ecs_ec2_capacity" {
   default_instance_warmup                        = var.ecs_ec2_capacity.default_instance_warmup
   force_delete_warm_pool                         = var.ecs_ec2_capacity.force_delete_warm_pool
   force_delete                                   = var.ecs_ec2_capacity.force_delete
-  availability_zones                             = var.ecs_ec2_capacity.availability_zones
-  availability_zone_distribution                 = var.ecs_ec2_capacity.availability_zone_distribution
   enabled_metrics                                = var.ecs_ec2_capacity.enabled_metrics
   ignore_failed_scaling_activities               = var.ecs_ec2_capacity.ignore_failed_scaling_activities
   ignore_desired_capacity_changes                = var.ecs_ec2_capacity.ignore_desired_capacity_changes
@@ -105,7 +101,6 @@ module "ecs_ec2_capacity" {
   disable_api_stop                               = var.ecs_ec2_capacity.disable_api_stop
   disable_api_termination                        = var.ecs_ec2_capacity.disable_api_termination
   ebs_optimized                                  = var.ecs_ec2_capacity.ebs_optimized
-  enclave_options                                = var.ecs_ec2_capacity.enclave_options
   hibernation_options                            = var.ecs_ec2_capacity.hibernation_options
   instance_initiated_shutdown_behavior           = var.ecs_ec2_capacity.instance_initiated_shutdown_behavior
   instance_market_options                        = var.ecs_ec2_capacity.instance_market_options
@@ -201,21 +196,19 @@ module "ecs_service" {
 }
 
 module "task_definition" {
-  for_each = local.task_definition_configs
+  for_each = var.task_definition
   source   = "./modules/task-definition"
 
-  create_task_definition   = each.value.create_task_definition
-  cpu                      = each.value.cpu
-  memory                   = each.value.memory
-  family                   = coalesce(each.value.family, each.key)
-  network_mode             = each.value.network_mode
-  requires_compatibilities = [var.launch_type]
-  launch_type              = var.launch_type
-  enable_fault_injection   = each.value.enable_fault_injection
-  skip_destroy             = each.value.skip_destroy
-  track_latest             = each.value.track_latest
-  current_region           = data.aws_region.current.region
-
+  create_task_definition           = each.value.create_task_definition
+  cpu                              = each.value.cpu
+  memory                           = each.value.memory
+  family                           = coalesce(each.value.family, each.key)
+  network_mode                     = each.value.network_mode
+  requires_compatibilities         = [var.launch_type]
+  launch_type                      = var.launch_type
+  enable_fault_injection           = each.value.enable_fault_injection
+  skip_destroy                     = each.value.skip_destroy
+  track_latest                     = each.value.track_latest
   container_definitions            = each.value.container_definitions
   create_task_execution_role       = each.value.create_task_execution_role
   task_execution_role_name         = each.value.task_execution_role_name
@@ -234,10 +227,10 @@ module "task_definition" {
   tasks_iam_role_tags                 = merge(var.base_tags, try(each.value.task_role_tags))
   tasks_iam_role_statements           = try(each.value.task_role_statements)
 
-  tasks_iam_role_policies = try(each.value.task_role_policies)
+  # tasks_iam_role_policies = try(each.value.task_role_policies)
 
-  tasks_iam_role_assume_policy = each.value.tasks_iam_role_assume_policy
-  tasks_iam_role_policy_json   = each.value.tasks_iam_role_policy_json
+  # tasks_iam_role_assume_policy = each.value.tasks_iam_role_assume_policy
+  # tasks_iam_role_policy_json   = each.value.tasks_iam_role_policy_json
   tasks_iam_role_arn           = try(each.value.external_task_role_arn)
 
   ephemeral_storage = each.value.ephemeral_storage

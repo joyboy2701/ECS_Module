@@ -5,26 +5,26 @@ locals {
   ]
   enable_ec2_capacity = length(local.ec2_services) > 0
 
-  task_role_policies = {
-    for key, config in var.task_definition :
-    key => {
-      assume_policy = try(data.aws_iam_policy_document.task_role_assume[key].json, null)
-      policy_json   = try(data.aws_iam_policy_document.task_role[key].json, null)
-    }
-  }
+  # task_role_policies = {
+  #   for key, config in var.task_definition :
+  #   key => {
+  #     assume_policy = try(data.aws_iam_policy_document.task_role_assume[key].json, null)
+  #     policy_json   = try(data.aws_iam_policy_document.task_role[key].json, null)
+  #   }
+  # }
 
-  task_definition_configs = {
-    for name, cfg in var.task_definition :
-    name => merge(
-      cfg,
-      {
-        container_definitions = lookup(cfg, "container_definitions", {})
+  # task_definition_configs = {
+  #   for name, cfg in var.task_definition :
+  #   name => merge(
+  #     cfg,
+  #     {
+  #       container_definitions = lookup(cfg, "container_definitions", {})
 
-        tasks_iam_role_assume_policy = local.task_role_policies[name].assume_policy
-        tasks_iam_role_policy_json   = local.task_role_policies[name].policy_json
-      }
-    )
-  }
+  #       tasks_iam_role_assume_policy = local.task_role_policies[name].assume_policy
+  #       tasks_iam_role_policy_json   = local.task_role_policies[name].policy_json
+  #     }
+  #   )
+  # }
   service_configs = {
     for name, svc in var.service :
     name => {

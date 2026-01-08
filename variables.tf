@@ -716,7 +716,6 @@ variable "task_definition" {
     enable_fault_injection = optional(bool, false)
     skip_destroy           = optional(bool, false)
     track_latest           = optional(bool, false)
-    current_region         = optional(string)
 
     # Container definitions
     container_definitions = optional(map(object({

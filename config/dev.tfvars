@@ -1,8 +1,3 @@
-base_tags = {
-  Environment = "dev"
-  ManagedBy   = "Terraform"
-}
-
 vpc = {
   vpc_name                = "my-wordpress-vpc"
   vpc_cidr                = "10.0.0.0/24"
@@ -155,6 +150,7 @@ service = {
       Desc = "dev"
     }
   }
+
   nginx = {
     create_service = true
     name           = "nginx-service"
@@ -194,7 +190,10 @@ service = {
 
   }
 }
-
+base_tags = {
+  Environment = "dev"
+  ManagedBy   = "Terraform"
+}
 task_definition = {
   wordpress = {
     dependsOn = [
@@ -254,27 +253,27 @@ task_definition = {
           startPeriod = 120
         }
 
-        secrets = [
-          {
-            name      = "WORDPRESS_DB_USER"
-            valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:username::"
-          },
-          {
-            name      = "WORDPRESS_DB_PASSWORD"
-            valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:password::"
-          },
-          {
-            name      = "WORDPRESS_DB_NAME"
-            valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:database::"
-          }
-        ]
+        # secrets = [
+        #   {
+        #     name      = "WORDPRESS_DB_USER"
+        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:username::"
+        #   },
+        #   {
+        #     name      = "WORDPRESS_DB_PASSWORD"
+        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:password::"
+        #   },
+        #   {
+        #     name      = "WORDPRESS_DB_NAME"
+        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:database::"
+        #   }
+        # ]
 
 
         environment = [
           { name = "WORDPRESS_DB_HOST", value = "127.0.0.1:3306" },
-          # { name = "WORDPRESS_DB_USER", value = "wpuser" },
-          # { name = "WORDPRESS_DB_PASSWORD", value = "wppassword" },
-          # { name = "WORDPRESS_DB_NAME", value = "wordpress" }
+          { name = "WORDPRESS_DB_USER", value = "wpuser" },
+          { name = "WORDPRESS_DB_PASSWORD", value = "wppassword" },
+          { name = "WORDPRESS_DB_NAME", value = "wordpress" }
         ]
       }
 
@@ -302,30 +301,30 @@ task_definition = {
           startPeriod = 60
         }
 
-        # environment = [
-        #   { name = "MYSQL_DATABASE", value = "wordpress" },
-        #   { name = "MYSQL_USER", value = "wpuser" },
-        #   { name = "MYSQL_PASSWORD", value = "wppassword" },
-        #   { name = "MYSQL_ROOT_PASSWORD", value = "rootpassword" }
-        # ]
-        secrets = [
-          {
-            name      = "MYSQL_USER"
-            valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:username::"
-          },
-          {
-            name      = "MYSQL_PASSWORD"
-            valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:password::"
-          },
-          {
-            name      = "MYSQL_DATABASE"
-            valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:database::"
-          },
-          {
-            name      = "MYSQL_ROOT_PASSWORD"
-            valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:root_password::"
-          }
+        environment = [
+          { name = "MYSQL_DATABASE", value = "wordpress" },
+          { name = "MYSQL_USER", value = "wpuser" },
+          { name = "MYSQL_PASSWORD", value = "wppassword" },
+          { name = "MYSQL_ROOT_PASSWORD", value = "rootpassword" }
         ]
+        # secrets = [
+        #   {
+        #     name      = "MYSQL_USER"
+        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:username::"
+        #   },
+        #   {
+        #     name      = "MYSQL_PASSWORD"
+        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:password::"
+        #   },
+        #   {
+        #     name      = "MYSQL_DATABASE"
+        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:database::"
+        #   },
+        #   {
+        #     name      = "MYSQL_ROOT_PASSWORD"
+        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:root_password::"
+        #   }
+        # ]
       }
     }
 

@@ -1,3 +1,12 @@
+data "aws_ami" "ecs" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-ecs-hvm-*-x86_64-ebs"]
+  }
+}
 resource "aws_autoscaling_group" "this" {
   count              = local.create && !var.ignore_desired_capacity_changes ? 1 : 0
   availability_zones = var.availability_zones
@@ -378,7 +387,7 @@ resource "aws_launch_template" "this" {
     }
   }
 
-  image_id                             = var.image_id
+  image_id                             = data.aws_ami.ecs.id
   instance_initiated_shutdown_behavior = var.instance_initiated_shutdown_behavior
 
   dynamic "instance_market_options" {

@@ -178,9 +178,6 @@ variable "task_tags" {
   type        = map(string)
   default     = {}
 }
-variable "current_region" {
-  type = string
-}
 variable "tasks_exec_iam_role_policies" {
   description = "Map of additioanl IAM role policy ARNs to attach to the IAM role"
   type        = map(string)

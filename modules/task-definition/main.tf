@@ -83,7 +83,7 @@ resource "aws_ecs_task_definition" "this" {
           logDriver = "awslogs"
           options = {
             "awslogs-group"         = container.create_cloudwatch_log_group ? (container.cloudwatch_log_group_use_name_prefix ? "${container.cloudwatch_log_group_name}-" : container.cloudwatch_log_group_name) : container.cloudwatch_log_group_name
-            "awslogs-region"        = var.current_region
+            "awslogs-region"        = data.aws_region.current.region
             "awslogs-stream-prefix" = "ecs"
           }
         }
@@ -165,7 +165,8 @@ resource "aws_iam_role" "tasks" {
   path        = var.tasks_iam_role_path
   description = var.tasks_iam_role_description
 
-  assume_role_policy    = var.tasks_iam_role_assume_policy
+  # assume_role_policy    = var.tasks_iam_role_assume_policy
+  assume_role_policy = data.aws_iam_policy_document.task_role_assume[0].json
   max_session_duration  = var.tasks_iam_role_max_session_duration
   permissions_boundary  = var.tasks_iam_role_permissions_boundary
   force_detach_policies = true
@@ -180,7 +181,8 @@ resource "aws_iam_policy" "tasks" {
   name        = var.tasks_iam_role_use_name_prefix ? null : var.tasks_iam_role_name
   name_prefix = var.tasks_iam_role_use_name_prefix ? "${var.tasks_iam_role_name}-" : null
   description = coalesce(var.tasks_iam_role_description, "Task role IAM policy")
-  policy      = var.tasks_iam_role_policy_json
+  # policy      = var.tasks_iam_role_policy_json
+  policy = data.aws_iam_policy_document.task_role[0].json
   path        = var.tasks_iam_role_path
   tags        = merge(var.tags, var.tasks_iam_role_tags)
 }
