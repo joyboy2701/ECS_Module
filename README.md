@@ -75,8 +75,6 @@ vpc
 | ------------------------- | ------------ | ----------------------------------- |
 | `vpc_name`                | string       | Name of the VPC                     |
 | `vpc_cidr`                | string       | CIDR range for the VPC              |
-| `environment`             | string       | Environment name (dev/stage/prod)   |
-| `subnet_types`            | map(string)  | Mapping of subnet names to type     |
 | `public_subnet_cidrs`     | list(string) | CIDR blocks for public subnets      |
 | `private_subnet_cidrs`    | list(string) | CIDR blocks for private subnets     |               
 | `cidr_block`              | string       | Allowed CIDR for routing / SG rules |
@@ -87,43 +85,92 @@ vpc
 
 load_balancer
 ----------------------------------------------------------------------------------------
-| Variable                          | Type         | Purpose                            |
-| --------------------------------- | ------------ | ---------------------------------- |
-| `name`                            | string       | Load balancer name                 |
-| `target_port`                     | number       | Target group port                  |
-| `listnert_port`                   | number       | Listner  port  80 for HTTP/ 443 for HTTPS                 |
-| `protocol`                        | string       | Listener protocol                  |
-| `load_balancer_type`              | string       | ALB or NLB                         |
-| `target_type`                     | string       | `instance` (EC2) or `ip` (Fargate) |
-| `internal`                        | bool         | Internal or internet-facing LB     |
-| `enable_deletion_protection`      | bool         | Enable deletion protection         |
-| `idle_timeout`                    | number       | ALB idle timeout                   |
-| `healthcheck_healthy_threshold`   | number       | Healthy threshold                  |
-| `healthcheck_unhealthy_threshold` | number       | Unhealthy threshold                |
-| `healthcheck_timeout`             | number       | Health check timeout               |
-| `healthcheck_interval`            | number       | Health check interval              |
-| `action_type`                     | string       | Listener action                    |
-| `matcher`                         | string       | HTTP success codes                 |
-| `healthCheck_path`                | string       | Health check path                  |
-| `security_group_rules`            | list(object) | LB security rules                  |
-| `tags`                            | map(string)  | Resource tags                      |
+| Variable                                         | Type         | Purpose                                                  |
+| ------------------------------------------------ | ------------ | -------------------------------------------------------- |
+| `name`                                           | string       | Name prefix for the load balancer and related resources  |
+| `vpc_id`                                         | string       | VPC ID where the load balancer will be deployed          |
+| `subnet_ids`                                     | list(string) | Subnets to attach the load balancer to                   |
+| `load_balancer_type`                             | string       | Load balancer type (`application` or `network`)          |
+| `internal`                                       | bool         | Whether the load balancer is internal or internet-facing |
+| `enable_deletion_protection`                     | bool         | Enable or disable deletion protection                    |
+| `idle_timeout`                                   | number       | Idle timeout for the load balancer (ALB only)            |
+| `security_group_rules`                           | list(object) | Security group rules (ingress / egress)                  |
+| `tags`                                           | map(string)  | Tags applied to all load balancer resources              |
+| `target_groups`                                  | map(object)  | Map of target group configurations                       |
+| `target_groups.name`                             | string       | Target group name                                        |
+| `target_groups.port`                             | number       | Target group port                                        |
+| `target_groups.protocol`                         | string       | Target group protocol                                    |
+| `target_groups.target_type`                      | string       | Target type (`instance` for EC2, `ip` for Fargate)       |
+| `target_groups.health_check.path`                | string       | Health check path                                        |
+| `target_groups.health_check.matcher`             | string       | Expected HTTP success codes                              |
+| `target_groups.health_check.interval`            | number       | Health check interval                                    |
+| `target_groups.health_check.healthy_threshold`   | number       | Healthy threshold                                        |
+| `target_groups.health_check.unhealthy_threshold` | number       | Unhealthy threshold                                      |
+| `target_groups.health_check.timeout`             | number       | Health check timeout                                     |
+| `listeners`                                      | map(object)  | Map of listener configurations                           |
+| `listeners.port`                                 | number       | Listener port (80 for HTTP, 443 for HTTPS)               |
+| `listeners.protocol`                             | string       | Listener protocol                                        |
+| `listeners.target_group_key`                     | string       | Default target group for the listener                    |
+| `listeners.ssl_policy`                           | string       | SSL policy for HTTPS listeners                           |
+| `listeners.certificate_arn`                      | string       | ACM certificate ARN                                      |
+| `listeners.rules`                                | map(object)  | Path-based routing rules                                 |
+| `listeners.rules.priority`                       | number       | Listener rule priority                                   |
+| `listeners.rules.path_patterns`                  | list(string) | Path patterns (e.g. `/api/*`)                            |
+| `listeners.rules.target_group_key`               | string       | Target group key for rule forwarding                     |
+
 
 ec2_capacity (EC2 Only)
----------------------------------------------------------------------------
-| Variable                         | Type         | Purpose                |
-| -------------------------------- | ------------ | ---------------------- |
-| `instance_type`                  | string       | EC2 instance type      |
-| `desired_capacity`               | number       | Desired instance count |
-| `min_size`                       | number       | Minimum instances      |
-| `max_size`                       | number       | Maximum instances      |
-| `managed_termination_protection` | string       | Protect running tasks  |
-| `maximum_scaling_step_size`      | number       | Max scaling step       |
-| `minimum_scaling_step_size`      | number       | Min scaling step       |
-| `target_capacity`                | number       | ECS target utilization |
-| `managed_scaling_status`         | string       | Enable managed scaling |
-| `sg_name`                        | string       | Security group name    |
-| `security_group_rules`           | list(object) | EC2 security rules     |
-| `tags`                           | map(string)  | Resource tags          |
+------------------------------------------------------------------------------------------------------------------
+| Variable                                         | Type         | Purpose                                       |
+| ------------------------------------------------ | ------------ | --------------------------------------------- |
+| `name`                                           | string       | Base name used across all created resources   |
+| `use_name_prefix`                                | bool         | Use name as prefix for unique resource names  |
+| `cluster_name`                                   | string       | ECS cluster name to associate instances with  |
+| `create`                                         | bool         | Whether to create the Auto Scaling Group      |
+| `vpc_id`                                         | string       | VPC ID where resources are deployed           |
+| `availability_zones`                             | list(string) | Availability Zones for ASG instances          |
+| `vpc_zone_identifier`                            | list(string) | Subnet IDs for ASG instances                  |
+| `desired_capacity`                               | number       | Desired number of EC2 instances               |
+| `min_size`                                       | number       | Minimum number of instances                   |
+| `max_size`                                       | number       | Maximum number of instances                   |
+| `desired_capacity_type`                          | string       | Capacity unit (`units`, `vcpu`, `memory-mib`) |
+| `health_check_type`                              | string       | Health check type (`EC2` or `ELB`)            |
+| `health_check_grace_period`                      | number       | Health check grace period (seconds)           |
+| `capacity_rebalance`                             | bool         | Enable capacity rebalance                     |
+| `protect_from_scale_in`                          | bool         | Protect instances from scale-in               |
+| `termination_policies`                           | list(string) | ASG termination policies                      |
+| `default_cooldown`                               | number       | Cooldown period between scaling activities    |
+| `default_instance_warmup`                        | number       | Instance warm-up time                         |
+| `max_instance_lifetime`                          | number       | Maximum lifetime of instances                 |
+| `enabled_metrics`                                | list(string) | ASG CloudWatch metrics                        |
+| `metrics_granularity`                            | string       | Metrics granularity                           |
+| `ignore_desired_capacity_changes`                | bool         | Ignore desired capacity drift                 |
+| `ignore_failed_scaling_activities`               | bool         | Ignore failed scaling activities              |
+| `force_delete`                                   | bool         | Force delete ASG without draining             |
+| `force_delete_warm_pool`                         | bool         | Force delete ASG warm pool                    |
+| `min_elb_capacity`                               | number       | Minimum healthy instances in ELB              |
+| `wait_for_elb_capacity`                          | number       | Exact healthy instances required              |
+| `wait_for_capacity_timeout`                      | string       | Capacity wait timeout                         |
+| `availability_zone_distribution`                 | object       | AZ capacity distribution settings             |
+| `instance_maintenance_policy`                    | object       | Instance maintenance policy                   |
+| `instance_refresh`                               | object       | Instance refresh configuration                |
+| `warm_pool`                                      | object       | Warm pool configuration                       |
+| `initial_lifecycle_hooks`                        | list(object) | Lifecycle hooks on instance launch            |
+| `suspended_processes`                            | list(string) | Suspended ASG processes                       |
+| `autoscaling_group_tags`                         | map(string)  | Additional ASG tags                           |
+| `autoscaling_group_tags_not_propagate_at_launch` | list(string) | Tags not propagated to instances              |
+| `instance_name`                                  | string       | Name tag applied to EC2 instances             |
+| `timeouts.delete`                                | string       | Delete timeout for ASG                        |
+| `traffic_source_attachments`                     | map(object)  | Load balancer / traffic source attachments    |
+| `schedules`                                      | map(object)  | Scheduled scaling actions                     |
+| `scaling_policies`                               | map(object)  | Auto scaling policies                         |
+| `use_mixed_instances_policy`                     | bool         | Enable mixed instances policy                 |
+| `mixed_instances_policy`                         | object       | Mixed instance configuration                  |
+| `placement_group`                                | string       | Placement group name                          |
+| `service_linked_role_arn`                        | string       | Service-linked role ARN                       |
+| `sg_name`                                        | string       | Security group name                           |
+| `security_group_rules`                           | list(object) | Security group ingress/egress rules           |
+| `tags`                                           | map(string)  | Common resource tags                          |
 
 cluster
 ----------------------------------------------------------------------------------
@@ -131,7 +178,6 @@ cluster
 | ---------------------------------------- | ------------ | ---------------------- |
 | `create`                                 | bool         | Create ECS cluster     |
 | `name`                                   | string       | Cluster name           |
-| `region`                                 | string       | AWS region             |
 | `tags`                                   | map(string)  | Cluster tags           |
 | `configuration`                          | object       | Cluster storage config |
 | `setting`                                | list(object) | Cluster settings       |
@@ -143,41 +189,110 @@ cluster
 | `cloudwatch_log_group_tags`              | map(string)  | Log group tags         |
 
 service
----------------------------------------------------------------------
-| Variable                 | Type         | Purpose                  |
-| ------------------------ | ------------ | ------------------------ |
-| `create_service`         | bool         | Create ECS service       |
-| `name`                   | string       | Service name             |
-| `launch_type`            | string       | `EC2` or `FARGATE`       |
-| `desired_count`          | number       | Number of tasks          |
-| `assign_public_ip`       | bool         | Fargate only             |
-| `subnet_ids`             | list(string) | Service subnets          |
-| `security_group_ids`     | list(string) | Existing SGs             |
-| `load_balancer`          | map(object)  | LB attachment            |
-| `create_task_definition` | bool         | Create task definition   |
-| `task_definition_arn`    | string       | Existing task definition |
-| `enable_execute_command` | bool         | Enable ECS Exec          |
-| `create_security_group`  | bool         | Create service SG        |
-| `container_definitions`  | any          | Container configuration  |
-| `ephemeral_storage`      | object       | Task storage             |
-| `tags`                   | map(string)  | Service tags             |
+-------------------------------------------------------------------------------------------------------
+| Variable                             | Type         | Purpose                                        |
+| ------------------------------------ | ------------ | ---------------------------------------------- |
+| `create_service`                     | bool         | Whether to create the ECS service              |
+| `name`                               | string       | ECS service name                               |
+| `cluster_arn`                        | string       | ARN of the ECS cluster                         |
+| `launch_type`                        | string       | Launch type (`EC2`, `FARGATE`, `EXTERNAL`)     |
+| `desired_count`                      | number       | Number of running tasks                        |
+| `platform_version`                   | string       | Fargate platform version                       |
+| `scheduling_strategy`                | string       | Scheduling strategy (`REPLICA` or `DAEMON`)    |
+| `force_new_deployment`               | bool         | Force new deployment on updates                |
+| `deployment_maximum_percent`         | number       | Max percent of running tasks during deployment |
+| `deployment_minimum_healthy_percent` | number       | Min healthy percent during deployment          |
+| `availability_zone_rebalancing`      | string       | Enable or disable AZ rebalancing               |
+| `capacity_provider_strategy`         | map(object)  | Capacity provider strategy configuration       |
+| `alarms`                             | object       | CloudWatch alarm configuration                 |
+| `ignore_task_definition_changes`     | bool         | Ignore task definition changes                 |
+| `wait_for_steady_state`              | bool         | Wait until service reaches steady state        |
+| `triggers`                           | map(string)  | Redeployment triggers                          |
+| `propagate_tags`                     | string       | Propagate tags to tasks                        |
+| `enable_execute_command`             | bool         | Enable ECS Exec                                |
+| `assign_public_ip`                   | bool         | Assign public IP (Fargate only)                |
+| `subnet_ids`                         | list(string) | Subnets for service networking                 |
+| `security_group_ids`                 | list(string) | Existing security groups                       |
+| `vpc_id`                             | string       | VPC ID for the service                         |
+| `network_mode`                       | string       | Network mode (`awsvpc`, etc.)                  |
+| `load_balancer`                      | object       | Load balancer attachment configuration         |
+| `task_definition_arn`                | string       | Existing task definition ARN                   |
+| `create_task_definition`             | bool         | Whether to create a task definition            |
+| `container_definitions`              | any          | Container definitions JSON                     |
+| `ephemeral_storage`                  | object       | Task ephemeral storage configuration           |
+| `service_tags`                       | map(string)  | Additional service-specific tags               |
+| `tags`                               | map(string)  | Common tags applied to all resources           |
+| `create_security_group`              | bool         | Whether to create a service security group     |
+| `security_group_name`                | string       | Name of the created security group             |
+| `security_group_use_name_prefix`     | bool         | Use name prefix for security group             |
+| `security_group_description`         | string       | Security group description                     |
+| `security_group_ingress_rules`       | map(object)  | Ingress rules for service SG                   |
+| `security_group_egress_rules`        | map(object)  | Egress rules for service SG                    |
+| `security_group_tags`                | map(string)  | Tags for the service security group            |
+
 
 task_definition
----------------------------------------------------------------------------
-| Variable                     | Type         | Purpose                    |
-| ---------------------------- | ------------ | -------------------------- |
-| `family`                     | string       | Task definition family     |
-| `cpu`                        | string       | Task CPU                   |
-| `memory`                     | string       | Task memory                |
-| `network_mode`               | string       | `awsvpc`, `host`, `bridge` |
-| `requires_compatibilities`   | list(string) | EC2 / Fargate              |
-| `launch_type`                | string       | Launch type                |
-| `container_definitions`      | map(object)  | Containers config          |
-| `ephemeral_storage`          | object       | Storage configuration      |
-| `volumes`                    | map(object)  | Volumes / EFS              |
-| `create_task_execution_role` | bool         | Create IAM role            |
-| `task_execution_role_name`   | string       | IAM role name              |
-| `tags`                       | map(string)  | Resource tags              |
+----------------------------------------------------------------------------------------------------------------------------------
+| Variable                                                       | Type              | Purpose                                    |
+| -------------------------------------------------------------- | ----------------- | ------------------------------------------ |
+| `family`                                                       | string            | Task definition family name                |
+| `cpu`                                                          | string            | CPU units for the task                     |
+| `memory`                                                       | string            | Memory for the task                        |
+| `network_mode`                                                 | string            | Network mode (`awsvpc`, `host`, `bridge`)  |
+| `requires_compatibilities`                                     | list(string)      | ECS launch compatibilities (EC2 / Fargate) |
+| `launch_type`                                                  | string            | Launch type for ECS service                |
+| `container_definitions`                                        | map(object)       | Map of container configurations            |
+| `container_definitions.create`                                 | bool              | Whether to create the container definition |
+| `container_definitions.name`                                   | string            | Container name                             |
+| `container_definitions.image`                                  | string            | Container image                            |
+| `container_definitions.cpu`                                    | number            | Container CPU units                        |
+| `container_definitions.memory`                                 | number            | Hard memory limit                          |
+| `container_definitions.memoryReservation`                      | number            | Soft memory limit                          |
+| `container_definitions.essential`                              | bool              | Whether container is essential             |
+| `container_definitions.command`                                | list(string)      | Container command                          |
+| `container_definitions.entrypoint`                             | list(string)      | Container entrypoint                       |
+| `container_definitions.environment`                            | list(map(string)) | Environment variables                      |
+| `container_definitions.secrets`                                | list(object)      | Secrets from SSM / Secrets Manager         |
+| `container_definitions.portMappings`                           | list(object)      | Port mappings                              |
+| `container_definitions.healthCheck`                            | object            | Container health check                     |
+| `container_definitions.enable_cloudwatch_logging`              | bool              | Enable CloudWatch logging                  |
+| `container_definitions.create_cloudwatch_log_group`            | bool              | Create CloudWatch log group                |
+| `container_definitions.cloudwatch_log_group_name`              | string            | Log group name                             |
+| `container_definitions.cloudwatch_log_group_use_name_prefix`   | bool              | Use name prefix for log group              |
+| `container_definitions.cloudwatch_log_group_class`             | string            | Log group class                            |
+| `container_definitions.cloudwatch_log_group_retention_in_days` | number            | Log retention period                       |
+| `container_definitions.cloudwatch_log_group_kms_key_id`        | string            | KMS key for logs                           |
+| `container_definitions.logConfiguration`                       | any               | Custom log configuration                   |
+| `ephemeral_storage`                                            | object            | Ephemeral storage configuration            |
+| `ephemeral_storage.size_in_gib`                                | number            | Ephemeral storage size                     |
+| `volumes`                                                      | map(object)       | Task volumes / EFS configuration           |
+| `create_task_definition`                                       | bool              | Whether to create task definition          |
+| `skip_destroy`                                                 | bool              | Skip destroy of task definition            |
+| `track_latest`                                                 | bool              | Track latest task definition revision      |
+| `enable_fault_injection`                                       | bool              | Enable fault injection                     |
+| `create_task_execution_role`                                   | bool              | Create task execution IAM role             |
+| `task_execution_role_name`                                     | string            | Task execution IAM role name               |
+| `task_execution_role_description`                              | string            | Task execution role description            |
+| `external_task_execution_role_arn`                             | string            | External task execution role ARN           |
+| `task_execution_custom_policies`                               | string            | Custom execution role policies (JSON)      |
+| `task_execution_role_tags`                                     | map(string)       | Tags for execution IAM role                |
+| `tasks_exec_iam_role_policies`                                 | map(string)       | Additional execution role policy ARNs      |
+| `create_tasks_iam_role`                                        | bool              | Create ECS task IAM role                   |
+| `tasks_iam_role_arn`                                           | string            | Existing task IAM role ARN                 |
+| `tasks_iam_role_name`                                          | string            | Task IAM role name                         |
+| `tasks_iam_role_use_name_prefix`                               | bool              | Use name prefix for task IAM role          |
+| `tasks_iam_role_path`                                          | string            | IAM role path                              |
+| `tasks_iam_role_description`                                   | string            | Task IAM role description                  |
+| `tasks_iam_role_permissions_boundary`                          | string            | IAM permissions boundary ARN               |
+| `tasks_iam_role_tags`                                          | map(string)       | Tags for task IAM role                     |
+| `tasks_iam_role_policies`                                      | map(string)       | Additional task IAM role policies          |
+| `tasks_iam_role_statements`                                    | list(object)      | Custom IAM policy statements               |
+| `tasks_iam_role_max_session_duration`                          | number            | Max IAM session duration                   |
+| `tasks_iam_role_assume_policy`                                 | string            | Pre-generated assume role policy JSON      |
+| `tasks_iam_role_policy_json`                                   | string            | Pre-generated IAM policy JSON              |
+| `tags`                                                         | map(string)       | Common resource tags                       |
+| `task_tags`                                                    | map(string)       | Additional task definition tags            |
+
 
 
 
@@ -196,6 +311,7 @@ terraform apply -var-file=config/dev.tfvars
 | **Service ↔ Task Mapping**  | `service` and `task_definition` **MUST use the same map key** |
 | **Multi-service Setup**     | Each service requires a matching task definition key          |
 | **Launch Type Consistency** | `launch_type` and `requires_compatibilities` must match       |
+| **Launch Type ** | `launch_type=FARGTE` for farget and EC2 for EC2 mode `requires_compatibilities` must match       |
 
 
 ## 🖥️ EC2 Capacity Configuration (Required for EC2)
@@ -259,9 +375,9 @@ ecs_ec2_capacity = {
 ```
 ------------------------------------------------------------------------
 
-## 🧪 Example: EC2-based ECS Service (WordPress + MySQL)
+## 🧪 Example: EC2-based ECS Services  (WordPress + MySQL) & Nginx
 
-This example deploys WordPress and MySQL on ECS using **EC2 launch
+This example deploys WordPress and MySQL in 1st service and Nginx on 2nd  using **EC2 launch
 type**, an **ALB with instance targets**, and `network_mode = host`.
 ```
 vpc = {

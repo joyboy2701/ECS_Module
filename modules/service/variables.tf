@@ -4,13 +4,6 @@ variable "create_service" {
   default     = true
   nullable    = false
 }
-
-variable "region" {
-  description = "Region where the resource(s) will be managed. Defaults to the Region set in the provider configuration"
-  type        = string
-  default     = null
-}
-
 variable "tags" {
   description = "A map of tags to add to all resources"
   type        = map(string)
@@ -19,19 +12,6 @@ variable "tags" {
 }
 
 # Service
-
-# variable "is_fargate" {
-#   type        = bool
-#   description = "Whether the service is using FARGATE launch type"
-# }
-
-# variable "network_configuration" {
-#   type = object({
-#     security_groups  = list(string)
-#     assign_public_ip = bool
-#   })
-#   description = "ECS service network configuration"
-# }
 
 variable "ignore_task_definition_changes" {
   description = "Whether changes to service `task_definition` changes should be ignored"
@@ -73,16 +53,6 @@ variable "cluster_arn" {
   nullable    = false
 }
 
-
-
-variable "deployment_controller" {
-  description = "Configuration block for deployment controller configuration"
-  type = object({
-    type = optional(string)
-  })
-  default = null
-}
-
 variable "deployment_maximum_percent" {
   description = "Upper limit (as a percentage of the service's `desired_count`) of the number of running tasks that can be running in a service during a deployment"
   type        = number
@@ -101,24 +71,11 @@ variable "desired_count" {
   default     = 1
 }
 
-variable "enable_ecs_managed_tags" {
-  description = "Specifies whether to enable Amazon ECS managed tags for the tasks within the service"
-  type        = bool
-  default     = true
-  nullable    = false
-}
-
 variable "force_new_deployment" {
   description = "Enable to force a new task deployment of the service. This can be used to update tasks to use a newer Docker image with same image/tag combination, roll Fargate tasks onto a newer platform version, or immediately deploy `ordered_placement_strategy` and `placement_constraints` updates"
   type        = bool
   default     = true
   nullable    = false
-}
-
-variable "health_check_grace_period_seconds" {
-  description = "Seconds to ignore failing load balancer health checks on newly instantiated tasks to prevent premature shutdown, up to 2147483647. Only valid for services configured to use load balancers"
-  type        = number
-  default     = null
 }
 
 variable "launch_type" {
@@ -176,15 +133,6 @@ variable "task_definition_arn" {
   type = string
 }
 
-variable "placement_constraints" {
-  description = "Configuration block for rules that are taken into consideration during task placement (up to max of 10). This is set at the service, see `task_definition_placement_constraints` for setting at the task definition"
-  type = map(object({
-    expression = optional(string)
-    type       = string
-  }))
-  default = null
-}
-
 variable "platform_version" {
   description = "Platform version on which to run your service. Only applicable for `launch_type` set to `FARGATE`. Defaults to `LATEST`"
   type        = string
@@ -207,29 +155,6 @@ variable "triggers" {
   description = "Map of arbitrary keys and values that, when changed, will trigger an in-place update (redeployment). Useful with `timestamp()`"
   type        = map(string)
   default     = null
-}
-
-variable "volume_configuration" {
-  description = "Configuration for a volume specified in the task definition as a volume that is configured at launch time"
-  type = object({
-    name = string
-    managed_ebs_volume = object({
-      encrypted        = optional(bool)
-      file_system_type = optional(string)
-      iops             = optional(number)
-      kms_key_id       = optional(string)
-      size_in_gb       = optional(number)
-      snapshot_id      = optional(string)
-      tag_specifications = optional(list(object({
-        propagate_tags = optional(string, "TASK_DEFINITION")
-        resource_type  = string
-        tags           = optional(map(string))
-      })))
-      throughput  = optional(number)
-      volume_type = optional(string)
-    })
-  })
-  default = null
 }
 
 variable "wait_for_steady_state" {
