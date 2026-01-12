@@ -8,11 +8,10 @@ vpc = {
   map_public_ip_on_launch = true
   enable_dns_support      = true
   dns_host_name           = true
-
 }
 cluster = {
   create = true
-  name   = "dev-ecs-cluster"
+  name   = "ecs-cluster"
   tags = {
     Project = "wordpress-app"
   }
@@ -26,16 +25,14 @@ cluster = {
   cloudwatch_log_group_name              = "/aws/ecs/dev-ecs-cluster"
   cloudwatch_log_group_retention_in_days = 14
   cloudwatch_log_group_class             = "STANDARD"
-  cloudwatch_log_group_tags              = { Environment = "dev" }
-  cloudwatch_log_group_kms_key_id        = "d33f023a-8e2f-47a5-8fa7-22adf1f65d13"
+  cloudwatch_log_group_kms_key_id        = "alias/cloud_watch"
 }
 load_balancer = {
-  name                       = "my-alb"
-  protocol                   = "HTTP"
-  load_balancer_type         = "application"
-  internal                   = false
-  enable_deletion_protection = false
-  idle_timeout               = 120
+  name               = "my-alb"
+  protocol           = "HTTP"
+  load_balancer_type = "application"
+  internal           = false
+  idle_timeout       = 120
 
   security_group_rules = [
     {
@@ -108,9 +105,8 @@ load_balancer = {
 launch_type = "FARGATE"
 service = {
   wordpress = {
-    create_service = true
-    name           = "wordpress-service"
-    desired_count  = 1
+    name          = "wordpress-service"
+    desired_count = 1
 
     platform_version                   = "LATEST"
     deployment_maximum_percent         = 200
@@ -152,9 +148,8 @@ service = {
   }
 
   nginx = {
-    create_service = true
-    name           = "nginx-service"
-    desired_count  = 1
+    name          = "nginx-service"
+    desired_count = 1
 
     platform_version                   = "LATEST"
     deployment_maximum_percent         = 200
@@ -166,10 +161,8 @@ service = {
     assign_public_ip = false
 
     load_balancer = {
-
       container_name = "nginx"
       container_port = 8080
-
     }
     create_security_group          = true
     security_group_name            = "nginx-sg"
@@ -209,7 +202,7 @@ task_definition = {
     network_mode             = "awsvpc"
     task_execution_role_name = "ecsTaskExecutionRole"
     task_exec_role_policies = {
-      secrets = "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
+      secrets = "SecretsManagerReadWrite"
     }
     create_tasks_role = true
     task_role_name    = "my-app-task-role"
@@ -251,28 +244,24 @@ task_definition = {
           retries     = 3
           startPeriod = 120
         }
-
-        # secrets = [
-        #   {
-        #     name      = "WORDPRESS_DB_USER"
-        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:username::"
-        #   },
-        #   {
-        #     name      = "WORDPRESS_DB_PASSWORD"
-        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:password::"
-        #   },
-        #   {
-        #     name      = "WORDPRESS_DB_NAME"
-        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:database::"
-        #   }
-        # ]
+        secrets = [
+          {
+            name      = "WORDPRESS_DB_USER"
+            valueFrom = "wordpress/mysql:username::"
+          },
+          {
+            name      = "WORDPRESS_DB_PASSWORD"
+            valueFrom = "wordpress/mysql:password::"
+          },
+          {
+            name      = "WORDPRESS_DB_NAME"
+            valueFrom = "wordpress/mysql:database::"
+          }
+        ]
 
 
         environment = [
           { name = "WORDPRESS_DB_HOST", value = "127.0.0.1:3306" },
-          { name = "WORDPRESS_DB_USER", value = "wpuser" },
-          { name = "WORDPRESS_DB_PASSWORD", value = "wppassword" },
-          { name = "WORDPRESS_DB_NAME", value = "wordpress" }
         ]
       }
 
@@ -300,30 +289,24 @@ task_definition = {
           startPeriod = 60
         }
 
-        environment = [
-          { name = "MYSQL_DATABASE", value = "wordpress" },
-          { name = "MYSQL_USER", value = "wpuser" },
-          { name = "MYSQL_PASSWORD", value = "wppassword" },
-          { name = "MYSQL_ROOT_PASSWORD", value = "rootpassword" }
+        secrets = [
+          {
+            name      = "MYSQL_USER"
+            valueFrom = "wordpress/mysql:username::"
+          },
+          {
+            name      = "MYSQL_PASSWORD"
+            valueFrom = "wordpress/mysql:password::"
+          },
+          {
+            name      = "MYSQL_DATABASE"
+            valueFrom = "wordpress/mysql:database::"
+          },
+          {
+            name      = "MYSQL_ROOT_PASSWORD"
+            valueFrom = "wordpress/mysql:root_password::"
+          }
         ]
-        # secrets = [
-        #   {
-        #     name      = "MYSQL_USER"
-        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:username::"
-        #   },
-        #   {
-        #     name      = "MYSQL_PASSWORD"
-        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:password::"
-        #   },
-        #   {
-        #     name      = "MYSQL_DATABASE"
-        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:database::"
-        #   },
-        #   {
-        #     name      = "MYSQL_ROOT_PASSWORD"
-        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:root_password::"
-        #   }
-        # ]
       }
     }
 
@@ -337,8 +320,6 @@ task_definition = {
 
     task_execution_role_name = "ecsTaskExecutionRole_nginx"
     create_tasks_role        = false
-    #  external_task_role_arn   = "arn:aws:iam::569023477847:role/my-app-task-role-20260105112735151900000002"
-
     ephemeral_storage = {
       size_in_gib = 21
     }
@@ -373,4 +354,3 @@ task_definition = {
     }
   }
 }
-

@@ -1,9 +1,9 @@
-variable "create_service" {
-  description = "Determines whether service resource will be created (set to `false` in case you want to create task definition only)"
-  type        = bool
-  default     = true
-  nullable    = false
-}
+# variable "create_service" {
+#   description = "Determines whether service resource will be created (set to `false` in case you want to create task definition only)"
+#   type        = bool
+#   default     = true
+#   nullable    = false
+# }
 variable "tags" {
   description = "A map of tags to add to all resources"
   type        = map(string)

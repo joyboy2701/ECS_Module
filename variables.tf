@@ -25,7 +25,7 @@ variable "load_balancer" {
     name                       = string
     load_balancer_type         = string
     internal                   = bool
-    enable_deletion_protection = bool
+    enable_deletion_protection = optional(bool, false)
     idle_timeout               = number
 
     # Security group rules for ALB
@@ -604,10 +604,8 @@ variable "ecs_ec2_capacity" {
 variable "cluster" {
   description = "Configuration for ECS cluster and related resources"
   type = object({
-    # Cluster basic
-    create = bool
-    name   = string
-    tags   = map(string)
+    name = string
+    tags = map(string)
 
     # Cluster configuration
     configuration = optional(object({
@@ -634,7 +632,7 @@ variable "service" {
   description = "Map of ECS services to create"
   type = map(object({
     # Module Control
-    create_service                     = bool
+    # create_service                     = bool
     ignore_task_definition_changes     = optional(bool)
     name                               = string
     desired_count                      = optional(number)
@@ -656,7 +654,7 @@ variable "service" {
 
     # Load Balancer
     load_balancer = optional(object({
-      container_name   = string
+      container_name   = string,
       container_port   = number
       elb_name         = optional(string)
       target_group_arn = optional(string)
@@ -756,10 +754,10 @@ variable "task_definition" {
       cloudwatch_log_group_retention_in_days = optional(number, 30)
       cloudwatch_log_group_kms_key_id        = optional(string)
 
+
       # Other log configurations
       logConfiguration = optional(any)
     })), {})
-
     # IAM role settings
     create_task_execution_role       = optional(bool, true)
     task_execution_role_name         = optional(string, "ecs-task-execution-role")

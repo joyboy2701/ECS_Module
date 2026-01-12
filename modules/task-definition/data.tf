@@ -1,4 +1,20 @@
 data "aws_region" "current" {}
+data "aws_iam_policy" "task_exec_role_policies" {
+  for_each = { for k, v in var.tasks_exec_iam_role_policies : k => v if var.create_task_execution_role }
+  name     = var.tasks_exec_iam_role_policies[each.key]
+}
+data "aws_secretsmanager_secret" "this" {
+  for_each = toset(local.secret_names)
+  name     = each.value
+}
+data "aws_iam_policy" "task_role_policies" {
+  for_each = { for k, v in var.tasks_iam_role_policies : k => v if var.create_tasks_iam_role }
+  name     = var.tasks_iam_role_policies[each.key]
+}
+data "aws_iam_role" "external_task_role" {
+  count = var.tasks_iam_role_arn != null ? 1 : 0
+  name  = var.tasks_iam_role_arn
+}
 data "aws_iam_policy_document" "task_role_assume" {
   count = try(var.create_tasks_iam_role, false) ? 1 : 0
 

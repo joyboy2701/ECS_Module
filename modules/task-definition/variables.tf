@@ -42,7 +42,6 @@ variable "container_definitions" {
   }))
   default = {}
 }
-
 # IAM Role Variables
 variable "create_task_execution_role" {
   description = "Whether to create a task execution IAM role"

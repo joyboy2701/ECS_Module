@@ -16,7 +16,6 @@ module "vpc" {
 module "ecs_cluster" {
   source = "./modules/cluster"
 
-  create                                 = var.cluster.create
   name                                   = var.cluster.name
   tags                                   = merge(var.base_tags, var.cluster.tags)
   configuration                          = var.cluster.configuration
@@ -144,10 +143,7 @@ module "load_balancer" {
 module "ecs_service" {
   source = "./modules/service"
 
-  for_each = var.service
-  # is_fargate                         = local.service_configs[each.key].is_fargate
-  # network_configuration              = local.service_configs[each.key].network_configuration
-  create_service                     = each.value.create_service
+  for_each                           = var.service
   ignore_task_definition_changes     = each.value.ignore_task_definition_changes
   cluster_arn                        = module.ecs_cluster.arn
   name                               = each.value.name
@@ -185,11 +181,16 @@ module "ecs_service" {
     }
   )
   security_group_tags = merge(var.base_tags, each.value.security_group_tags)
-  load_balancer = {
+  # load_balancer = {
+  #   target_group_arn = module.load_balancer.target_group_arns[each.key]
+  #   container_name   = each.value.load_balancer.container_name
+  #   container_port   = each.value.load_balancer.container_port
+  # }
+  load_balancer = each.value.load_balancer != null ? {
     target_group_arn = module.load_balancer.target_group_arns[each.key]
     container_name   = each.value.load_balancer.container_name
     container_port   = each.value.load_balancer.container_port
-  }
+  } : null
   task_definition_arn = module.task_definition[each.key].task_definition_arn
 
   tags = merge(var.base_tags, each.value.tags)

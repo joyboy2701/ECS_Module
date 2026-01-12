@@ -48,18 +48,17 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 resource "aws_iam_role_policy_attachment" "tasks_exec" {
-  for_each = { for k, v in var.tasks_exec_iam_role_policies : k => v if var.create_task_execution_role }
+  for_each = { for k, v in data.aws_iam_policy.task_exec_role_policies : k => v if var.create_task_execution_role }
 
   role       = aws_iam_role.ecs_task_execution_role[0].name
-  policy_arn = each.value
+  policy_arn = each.value.arn
 }
 
-# Single resource for task definition with clean inline container definitions
 resource "aws_ecs_task_definition" "this" {
   count = var.create_task_definition ? 1 : 0
 
   container_definitions = jsonencode([
-    for key, container in var.container_definitions :
+    for key, container in local.resolved_container_definitions :
     merge(
       {
         name              = coalesce(container.name, key)
@@ -109,7 +108,8 @@ resource "aws_ecs_task_definition" "this" {
 
   execution_role_arn = try(aws_iam_role.ecs_task_execution_role[0].arn, var.external_task_execution_role_arn)
   family             = var.family
-  task_role_arn      = try(aws_iam_role.tasks[0].arn, var.tasks_iam_role_arn)
+  task_role_arn      = try(aws_iam_role.tasks[0].arn, data.aws_iam_role.external_task_role[0].arn, "")
+
 
   memory       = var.memory
   network_mode = var.network_mode
@@ -195,8 +195,8 @@ resource "aws_iam_role_policy_attachment" "tasks_internal" {
 }
 
 resource "aws_iam_role_policy_attachment" "tasks" {
-  for_each = { for k, v in var.tasks_iam_role_policies : k => v if var.create_tasks_iam_role }
+  for_each = { for k, v in data.aws_iam_policy.task_role_policies : k => v if var.create_tasks_iam_role }
 
   role       = aws_iam_role.tasks[0].name
-  policy_arn = each.value
+  policy_arn = each.value.arn
 }

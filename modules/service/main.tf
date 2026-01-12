@@ -1,8 +1,7 @@
 locals {
   service_configs = {
     is_fargate            = upper(var.launch_type) == "FARGATE"
-    create_service        = var.create_service
-    create_security_group = var.create_service && var.network_mode == "awsvpc"
+    create_security_group = var.network_mode == "awsvpc"
 
     security_group_name = coalesce(
       var.security_group_name,
@@ -10,7 +9,7 @@ locals {
       "NotProvided"
     )
     # Only set network_configuration for Fargate or awsvpc tasks
-    network_configuration = (upper(var.launch_type) == "FARGATE" || var.network_mode == "awsvpc") ? {
+    network_configuration = (upper(var.launch_type) == "FARGATE" && var.network_mode == "awsvpc") ? {
       assign_public_ip = var.assign_public_ip
       security_groups  = var.security_group_ids
     } : null
@@ -21,7 +20,7 @@ locals {
   }
 }
 resource "aws_ecs_service" "this" {
-  count = var.create_service && !var.ignore_task_definition_changes ? 1 : 0
+  count = !var.ignore_task_definition_changes ? 1 : 0
 
   dynamic "alarms" {
     for_each = var.alarms != null ? [var.alarms] : []
@@ -44,11 +43,25 @@ resource "aws_ecs_service" "this" {
   launch_type                        = var.capacity_provider_strategy != null ? null : var.launch_type
   platform_version                   = local.service_configs.is_fargate ? var.platform_version : null
 
-  load_balancer {
-    container_name   = var.load_balancer.container_name
-    container_port   = var.load_balancer.container_port
-    elb_name         = var.load_balancer.elb_name
-    target_group_arn = var.load_balancer.target_group_arn
+  # dynamic "load_balancer" {
+  #   for_each = var.load_balancer != null ? var.load_balancer : {}
+
+  #   content {
+  #     container_name   = var.load_balancer.container_name
+  #     container_port   = var.load_balancer.container_port
+  #     elb_name         = var.load_balancer.elb_name
+  #     target_group_arn = var.load_balancer.target_group_arn
+  #   }
+  # }
+  dynamic "load_balancer" {
+    for_each = var.load_balancer != null ? [var.load_balancer] : []
+
+    content {
+      container_name   = load_balancer.value.container_name
+      container_port   = load_balancer.value.container_port
+      elb_name         = try(load_balancer.value.elb_name, null)
+      target_group_arn = try(load_balancer.value.target_group_arn, null)
+    }
   }
 
   name = var.name

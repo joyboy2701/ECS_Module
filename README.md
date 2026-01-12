@@ -192,7 +192,6 @@ service
 -------------------------------------------------------------------------------------------------------
 | Variable                             | Type         | Purpose                                        |
 | ------------------------------------ | ------------ | ---------------------------------------------- |
-| `create_service`                     | bool         | Whether to create the ECS service              |
 | `name`                               | string       | ECS service name                               |
 | `cluster_arn`                        | string       | ARN of the ECS cluster                         |
 | `launch_type`                        | string       | Launch type (`EC2`, `FARGATE`, `EXTERNAL`)     |
@@ -490,7 +489,6 @@ load_balancer = {
 launch_type = "EC2"
 service = {
   wordpress = {
-    create_service = true
     name           = "wordpress-service"
     desired_count  = 1
 
@@ -534,7 +532,6 @@ service = {
   }
 
   nginx = {
-    create_service = true
     name           = "nginx-service"
     desired_count  = 1
 
