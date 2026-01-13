@@ -21,7 +21,7 @@ cluster = {
     }
   ]
   create_cloudwatch_log_group            = true
-  cloudwatch_log_group_name              = "/aws/ecs/dev-ecs-cluster"
+  cloudwatch_log_group_name              = "/aws/ecs/ecs-cluster"
   cloudwatch_log_group_retention_in_days = 14
   cloudwatch_log_group_class             = "STANDARD"
   cloudwatch_log_group_kms_key_id        = "alias/cloud_watch"
@@ -189,7 +189,6 @@ task_definition = {
         condition     = "HEALTHY"
       }
     ]
-    create_task_definition   = true
     family                   = "wordpress"
     cpu                      = 1024
     memory                   = 2048
@@ -306,7 +305,6 @@ task_definition = {
 
   }
   nginx = {
-    create_task_definition = true
     family                 = "nginx"
     cpu                    = 1024
     memory                 = 2048
