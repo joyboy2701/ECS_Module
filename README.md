@@ -355,8 +355,8 @@ ecs_ec2_capacity = {
   create_iam_instance_profile = true
   iam_role_name               = "ecs-ec2-role"
   iam_role_policies = {
-    ecs = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
-    ssm = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    ecs = "AmazonEC2ContainerServiceforEC2Role"
+    ssm = "AmazonSSMManagedInstanceCore"
   }
 
   managed_scaling_status         = "ENABLED"
@@ -775,8 +775,8 @@ ecs_ec2_capacity = {
   create_iam_instance_profile = true
   iam_role_name               = "ecs-ec2-role"
   iam_role_policies = {
-    ecs = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
-    ssm = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    ecs = "AmazonEC2ContainerServiceforEC2Role"
+    ssm = "AmazonSSMManagedInstanceCore"
   }
 
   managed_scaling_status         = "ENABLED"

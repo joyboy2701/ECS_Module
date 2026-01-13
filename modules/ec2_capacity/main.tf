@@ -952,7 +952,10 @@ resource "aws_autoscaling_policy" "this" {
   }
 }
 # IAM Role / Instance Profile
-
+data "aws_iam_policy" "iam_role_policies" {
+ for_each = { for k, v in var.iam_role_policies : k => v if var.create && var.create_iam_instance_profile }
+  name     = var.iam_role_policies[each.key]
+}
 resource "aws_iam_role" "this" {
   count = local.create && var.create_iam_instance_profile ? 1 : 0
 
@@ -976,9 +979,9 @@ resource "aws_iam_role" "this" {
 }
 
 resource "aws_iam_role_policy_attachment" "this" {
-  for_each = { for k, v in var.iam_role_policies : k => v if var.create && var.create_iam_instance_profile }
+  for_each = { for k, v in data.aws_iam_policy.iam_role_policies : k => v if var.create && var.create_iam_instance_profile }
 
-  policy_arn = each.value
+  policy_arn = each.value.arn
   role       = aws_iam_role.this[0].name
 }
 
