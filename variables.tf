@@ -620,7 +620,7 @@ variable "cluster" {
     })))
 
     # CloudWatch Log Group
-    create_cloudwatch_log_group            = optional(bool)
+    create_cloudwatch_log_group            = optional(bool,true)
     cloudwatch_log_group_name              = optional(string)
     cloudwatch_log_group_retention_in_days = optional(number)
     cloudwatch_log_group_kms_key_id        = optional(string)
