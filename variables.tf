@@ -632,7 +632,6 @@ variable "service" {
   description = "Map of ECS services to create"
   type = map(object({
     # Module Control
-    # create_service                     = bool
     ignore_task_definition_changes     = optional(bool)
     name                               = string
     desired_count                      = optional(number)

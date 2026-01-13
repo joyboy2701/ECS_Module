@@ -10,7 +10,6 @@ vpc = {
   dns_host_name           = true
 }
 cluster = {
-  create = true
   name   = "ecs-cluster"
   tags = {
     Project = "wordpress-app"
@@ -140,11 +139,6 @@ service = {
       all = { cidr_ipv4 = "0.0.0.0/0", ip_protocol = "-1" }
     }
     security_group_tags = { Description = "custom service sg for every service" }
-
-
-    tags = {
-      Desc = "dev"
-    }
   }
 
   nginx = {
@@ -348,8 +342,6 @@ task_definition = {
           retries     = 3
           startPeriod = 120
         }
-        environment = [
-        ]
       }
     }
   }

@@ -176,7 +176,6 @@ cluster
 ----------------------------------------------------------------------------------
 | Variable                                 | Type         | Purpose                |
 | ---------------------------------------- | ------------ | ---------------------- |
-| `create`                                 | bool         | Create ECS cluster     |
 | `name`                                   | string       | Cluster name           |
 | `tags`                                   | map(string)  | Cluster tags           |
 | `configuration`                          | object       | Cluster storage config |
@@ -318,7 +317,6 @@ terraform apply -var-file=config/dev.tfvars
 When using EC2 launch type, you must define the ec2_capacity block to provision Auto Scaling capacity for the ECS cluster.
 ```
 ecs_ec2_capacity = {
-  create          = true
   name            = "ecs-ec2-prod"
   cluster_name    = "prod-ecs-cluster"
   use_name_prefix = true
@@ -392,8 +390,7 @@ vpc = {
 
 }
 cluster = {
-  create = true
-  name   = "dev-ecs-cluster"
+  name   = "ecs-cluster"
   tags = {
     Project = "wordpress-app"
   }
@@ -404,10 +401,9 @@ cluster = {
     }
   ]
   create_cloudwatch_log_group            = true
-  cloudwatch_log_group_name              = "/aws/ecs/dev-ecs-cluster"
+  cloudwatch_log_group_name              = "/aws/ecs/ecs-cluster"
   cloudwatch_log_group_retention_in_days = 14
   cloudwatch_log_group_class             = "STANDARD"
-  cloudwatch_log_group_tags              = { Environment = "dev" }
   cloudwatch_log_group_kms_key_id        = "d33f023a-8e2f-47a5-8fa7-22adf1f65d13"
 }
 load_balancer = {
@@ -525,10 +521,6 @@ service = {
     }
     security_group_tags = { Description = "custom service sg for every service" }
 
-
-    tags = {
-      Desc = "dev"
-    }
   }
 
   nginx = {
@@ -631,27 +623,24 @@ task_definition = {
           startPeriod = 120
         }
 
-        # secrets = [
-        #   {
-        #     name      = "WORDPRESS_DB_USER"
-        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:username::"
-        #   },
-        #   {
-        #     name      = "WORDPRESS_DB_PASSWORD"
-        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:password::"
-        #   },
-        #   {
-        #     name      = "WORDPRESS_DB_NAME"
-        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:database::"
-        #   }
-        # ]
+       secrets = [
+          {
+            name      = "WORDPRESS_DB_USER"
+            valueFrom = "wordpress/mysql:username::"
+          },
+          {
+            name      = "WORDPRESS_DB_PASSWORD"
+            valueFrom = "wordpress/mysql:password::"
+          },
+          {
+            name      = "WORDPRESS_DB_NAME"
+            valueFrom = "wordpress/mysql:database::"
+          }
+        ]
 
 
         environment = [
           { name = "WORDPRESS_DB_HOST", value = "127.0.0.1:3306" },
-          { name = "WORDPRESS_DB_USER", value = "wpuser" },
-          { name = "WORDPRESS_DB_PASSWORD", value = "wppassword" },
-          { name = "WORDPRESS_DB_NAME", value = "wordpress" }
         ]
       }
 
@@ -679,30 +668,24 @@ task_definition = {
           startPeriod = 60
         }
 
-        environment = [
-          { name = "MYSQL_DATABASE", value = "wordpress" },
-          { name = "MYSQL_USER", value = "wpuser" },
-          { name = "MYSQL_PASSWORD", value = "wppassword" },
-          { name = "MYSQL_ROOT_PASSWORD", value = "rootpassword" }
+        secrets = [
+          {
+            name      = "MYSQL_USER"
+            valueFrom = "wordpress/mysql:username::"
+          },
+          {
+            name      = "MYSQL_PASSWORD"
+            valueFrom = "wordpress/mysql:password::"
+          },
+          {
+            name      = "MYSQL_DATABASE"
+            valueFrom = "wordpress/mysql:database::"
+          },
+          {
+            name      = "MYSQL_ROOT_PASSWORD"
+            valueFrom = "wordpress/mysql:root_password::"
+          }
         ]
-        # secrets = [
-        #   {
-        #     name      = "MYSQL_USER"
-        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:username::"
-        #   },
-        #   {
-        #     name      = "MYSQL_PASSWORD"
-        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:password::"
-        #   },
-        #   {
-        #     name      = "MYSQL_DATABASE"
-        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:database::"
-        #   },
-        #   {
-        #     name      = "MYSQL_ROOT_PASSWORD"
-        #     valueFrom = "arn:aws:secretsmanager:us-east-1:569023477847:secret:wordpress/mysql-riIZst:root_password::"
-        #   }
-        # ]
       }
     }
 
@@ -716,7 +699,7 @@ task_definition = {
 
     task_execution_role_name = "ecsTaskExecutionRole_nginx"
     create_tasks_role        = false
-    #  external_task_role_arn   = "arn:aws:iam::569023477847:role/my-app-task-role-20260105112735151900000002"
+    #  external_task_role_arn   = "my-app-task-role-20260105112735151900000002"
 
     ephemeral_storage = {
       size_in_gib = 21
