@@ -64,6 +64,7 @@ variable "target_groups" {
       healthy_threshold   = optional(number)
       unhealthy_threshold = optional(number)
       timeout             = optional(number)
+      port                = optional(string)
     }))
   }))
   default = {}

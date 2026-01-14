@@ -13,9 +13,9 @@ variable "vpc" {
   })
 }
 
-variable "launch_type" {
-  type = string
-}
+# variable "launch_type" {
+#   type = string
+# }
 variable "base_tags" {
   type = map(string)
 }
@@ -53,6 +53,7 @@ variable "load_balancer" {
         healthy_threshold   = optional(number)
         unhealthy_threshold = optional(number)
         timeout             = optional(number)
+        port                = optional(string)
       }))
     }))
 
@@ -620,7 +621,7 @@ variable "cluster" {
     })))
 
     # CloudWatch Log Group
-    create_cloudwatch_log_group            = optional(bool,true)
+    create_cloudwatch_log_group            = optional(bool, true)
     cloudwatch_log_group_name              = optional(string)
     cloudwatch_log_group_retention_in_days = optional(number)
     cloudwatch_log_group_kms_key_id        = optional(string)
@@ -645,6 +646,7 @@ variable "service" {
     triggers                           = optional(map(string))
     wait_for_steady_state              = optional(bool)
     enable_fault_injection             = optional(bool)
+    launch_type                        = optional(string, "FARGATE")
 
     # Networking
     assign_public_ip   = optional(bool)

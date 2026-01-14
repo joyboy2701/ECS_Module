@@ -63,10 +63,11 @@ resource "aws_lb_target_group" "target_groups" {
     for_each = each.value.health_check != null ? [each.value.health_check] : []
 
     content {
-      path                = try(health_check.value.path, var.target_groups.health_check.path)
-      matcher             = try(health_check.value.matcher, var.target_groups.health_check.matcher)
-      interval            = try(health_check.value.interval, var.target_groups.health_checkhealthcheck_interval)
-      port                = each.value.port
+      path     = try(health_check.value.path, var.target_groups.health_check.path)
+      matcher  = try(health_check.value.matcher, var.target_groups.health_check.matcher)
+      interval = try(health_check.value.interval, var.target_groups.health_checkhealthcheck_interval)
+      # port                = each.value.port
+      port                = try(health_check.value.port, null)
       protocol            = each.value.protocol
       healthy_threshold   = try(health_check.value.healthy_threshold, var.target_groups.health_checkhealthcheck_healthy_threshold)
       unhealthy_threshold = try(health_check.value.unhealthy_threshold, var.target_groups.health_check.healthcheck_unhealthy_threshold)

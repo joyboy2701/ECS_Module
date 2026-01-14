@@ -155,7 +155,7 @@ module "ecs_service" {
   scheduling_strategy                = each.value.scheduling_strategy
   propagate_tags                     = each.value.propagate_tags
   service_tags                       = merge(var.base_tags, each.value.service_tags)
-  launch_type                        = var.launch_type
+  launch_type                        = each.value.launch_type
   triggers                           = each.value.triggers
   wait_for_steady_state              = each.value.wait_for_steady_state
 
@@ -181,11 +181,6 @@ module "ecs_service" {
     }
   )
   security_group_tags = merge(var.base_tags, each.value.security_group_tags)
-  # load_balancer = {
-  #   target_group_arn = module.load_balancer.target_group_arns[each.key]
-  #   container_name   = each.value.load_balancer.container_name
-  #   container_port   = each.value.load_balancer.container_port
-  # }
   load_balancer = each.value.load_balancer != null ? {
     target_group_arn = module.load_balancer.target_group_arns[each.key]
     container_name   = each.value.load_balancer.container_name
@@ -205,8 +200,8 @@ module "task_definition" {
   memory                           = each.value.memory
   family                           = coalesce(each.value.family, each.key)
   network_mode                     = each.value.network_mode
-  requires_compatibilities         = [var.launch_type]
-  launch_type                      = var.launch_type
+  requires_compatibilities         = [var.service[each.key].launch_type]
+  launch_type                      = var.service[each.key].launch_type
   enable_fault_injection           = each.value.enable_fault_injection
   skip_destroy                     = each.value.skip_destroy
   track_latest                     = each.value.track_latest

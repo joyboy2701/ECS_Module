@@ -10,7 +10,7 @@ vpc = {
   dns_host_name           = true
 }
 cluster = {
-  name   = "ecs-cluster"
+  name = "ecs-cluster"
   tags = {
     Project = "wordpress-app"
   }
@@ -71,13 +71,14 @@ load_balancer = {
       name        = "nginx-tg"
       port        = 8080
       protocol    = "HTTP"
-      target_type = "ip"
+      target_type = "instance"
       health_check = {
         path                = "/"
         matcher             = "200-399"
         interval            = 30
         timeout             = 5
         healthy_threshold   = 3
+        port                = "traffic-port"
         unhealthy_threshold = 3
       }
     },
@@ -101,7 +102,7 @@ load_balancer = {
     Application = "myapp"
   }
 }
-launch_type = "FARGATE"
+# launch_type = "FARGATE"
 service = {
   wordpress = {
     name          = "wordpress-service"
@@ -113,6 +114,7 @@ service = {
     scheduling_strategy                = "REPLICA"
     propagate_tags                     = "SERVICE"
     wait_for_steady_state              = false
+    launch_type                        = "FARGATE"
 
     assign_public_ip = false
 
@@ -151,6 +153,7 @@ service = {
     scheduling_strategy                = "REPLICA"
     propagate_tags                     = "SERVICE"
     wait_for_steady_state              = false
+    launch_type                        = "EC2"
 
     assign_public_ip = false
 
@@ -305,10 +308,10 @@ task_definition = {
 
   }
   nginx = {
-    family                 = "nginx"
-    cpu                    = 1024
-    memory                 = 2048
-    network_mode           = "awsvpc"
+    family       = "nginx"
+    cpu          = 1024
+    memory       = 2048
+    network_mode = "bridge"
 
     task_execution_role_name = "ecsTaskExecutionRole_nginx"
     create_tasks_role        = false
@@ -342,5 +345,60 @@ task_definition = {
         }
       }
     }
+  }
+}
+
+
+ecs_ec2_capacity = {
+  name            = "ecs-ec2"
+  cluster_name    = "ecs-cluster"
+  use_name_prefix = true
+  sg_name         = "instance_sg"
+
+  security_group_rules = [
+    {
+      type       = "ingress"
+      from_port  = 80
+      to_port    = 80
+      protocol   = "tcp"
+      cidr_block = ["10.0.0.0/24"]
+    },
+    {
+      type       = "ingress"
+      from_port  = 8080
+      to_port    = 8080
+      protocol   = "tcp"
+      cidr_block = ["10.0.0.0/24"]
+    },
+    {
+      type        = "egress"
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+    },
+  ]
+
+  min_size         = 1
+  max_size         = 4
+  desired_capacity = 1
+
+  instance_type = "t2.large"
+
+  create_iam_instance_profile = true
+  iam_role_name               = "ecs-ec2-role"
+  iam_role_policies = {
+    ecs = "AmazonEC2ContainerServiceforEC2Role"
+    ssm = "AmazonSSMManagedInstanceCore"
+  }
+
+  managed_scaling_status         = "ENABLED"
+  target_capacity                = 100
+  minimum_scaling_step_size      = 1
+  maximum_scaling_step_size      = 4
+  managed_termination_protection = "ENABLED"
+
+  tags = {
+    Owner = "platform-team"
   }
 }
