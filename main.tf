@@ -169,17 +169,16 @@ module "ecs_service" {
   security_group_egress_rules = each.value.security_group_egress_rules
 
   security_group_ingress_rules = merge(
-    each.value.security_group_ingress_rules,
-    {
-      # Add referenced_security_group_id to specific rules
-      lb_to_app = merge(
-        each.value.security_group_ingress_rules.lb_to_app,
-        {
-          referenced_security_group_id = module.load_balancer.sg_id
-        }
-      ),
-    }
-  )
+  each.value.security_group_ingress_rules,
+  try({
+    lb_to_app = merge(
+      each.value.security_group_ingress_rules.lb_to_app,
+      {
+        referenced_security_group_id = module.load_balancer.sg_id
+      }
+    )
+  }, {})  # Return empty map if lb_to_app doesn't exist
+)
   security_group_tags = merge(var.base_tags, each.value.security_group_tags)
   load_balancer = each.value.load_balancer != null ? {
     target_group_arn = module.load_balancer.target_group_arns[each.key]

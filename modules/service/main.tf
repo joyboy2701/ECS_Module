@@ -9,7 +9,7 @@ locals {
       "NotProvided"
     )
     # Only set network_configuration for Fargate or awsvpc tasks
-    network_configuration = (upper(var.launch_type) == "FARGATE" && var.network_mode == "awsvpc") ? {
+    network_configuration = (upper(var.launch_type) == "FARGATE" || var.network_mode == "awsvpc") ? {
       assign_public_ip = var.assign_public_ip
       security_groups  = var.security_group_ids
     } : null
@@ -31,6 +31,7 @@ resource "aws_ecs_service" "this" {
       rollback    = alarms.value.rollback
     }
   }
+  
 
   availability_zone_rebalancing = var.availability_zone_rebalancing
 
@@ -43,16 +44,6 @@ resource "aws_ecs_service" "this" {
   launch_type                        = var.capacity_provider_strategy != null ? null : var.launch_type
   platform_version                   = local.service_configs.is_fargate ? var.platform_version : null
 
-  # dynamic "load_balancer" {
-  #   for_each = var.load_balancer != null ? var.load_balancer : {}
-
-  #   content {
-  #     container_name   = var.load_balancer.container_name
-  #     container_port   = var.load_balancer.container_port
-  #     elb_name         = var.load_balancer.elb_name
-  #     target_group_arn = var.load_balancer.target_group_arn
-  #   }
-  # }
   dynamic "load_balancer" {
     for_each = var.load_balancer != null ? [var.load_balancer] : []
 
