@@ -1,17 +1,9 @@
-# variable "create_service" {
-#   description = "Determines whether service resource will be created (set to `false` in case you want to create task definition only)"
-#   type        = bool
-#   default     = true
-#   nullable    = false
-# }
 variable "tags" {
   description = "A map of tags to add to all resources"
   type        = map(string)
   default     = {}
   nullable    = false
 }
-
-# Service
 
 variable "ignore_task_definition_changes" {
   description = "Whether changes to service `task_definition` changes should be ignored"
@@ -160,7 +152,7 @@ variable "triggers" {
 variable "wait_for_steady_state" {
   description = "If true, Terraform will wait for the service to reach a steady state before continuing. Default is `false`"
   type        = bool
-  default     = null
+  default     = false
 }
 
 variable "service_tags" {

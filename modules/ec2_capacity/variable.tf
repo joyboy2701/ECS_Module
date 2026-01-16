@@ -58,7 +58,7 @@ variable "availability_zone_distribution" {
 variable "capacity_rebalance" {
   description = "Indicates whether capacity rebalance is enabled"
   type        = bool
-  default     = null
+  default     = false
 }
 
 variable "context" {
@@ -100,13 +100,13 @@ variable "enabled_metrics" {
 variable "force_delete" {
   description = "Allows deleting the Auto Scaling Group without waiting for all instances in the pool to terminate. You can force an Auto Scaling Group to delete even if it's in the process of scaling a resource. Normally, Terraform drains all the instances before deleting the group. This bypasses that behavior and potentially leaves resources dangling"
   type        = bool
-  default     = null
+  default     = false
 }
 
 variable "force_delete_warm_pool" {
   description = "Allows deleting the Auto Scaling Group without waiting for all instances in the warm pool to terminate"
   type        = bool
-  default     = null
+  default     = false
 }
 
 variable "health_check_grace_period" {
@@ -478,19 +478,19 @@ variable "launch_template_description" {
 variable "disable_api_stop" {
   description = "If true, enables EC2 instance stop protection"
   type        = bool
-  default     = null
+  default     = false
 }
 
 variable "disable_api_termination" {
   description = "If true, enables EC2 instance termination protection"
   type        = bool
-  default     = null
+  default     = false
 }
 
 variable "ebs_optimized" {
   description = "If true, the launched EC2 instance will be EBS-optimized"
   type        = bool
-  default     = null
+  default     = false
 }
 
 variable "enclave_options" {
@@ -745,13 +745,13 @@ variable "tag_specifications" {
 variable "update_default_version" {
   description = "Whether to update Default Version each update. Conflicts with `default_version`"
   type        = bool
-  default     = null
+  default     = false
 }
 
 variable "user_data" {
   description = "The Base64-encoded user data to provide when launching the instance"
   type        = string
-  default     = null
+  default     = false
 }
 
 variable "security_groups" {
