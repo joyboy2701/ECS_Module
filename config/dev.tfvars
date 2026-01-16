@@ -33,7 +33,7 @@ cluster = {
 }
 
 load_balancer = {
-  name               = "api-alb"
+  name               = "api"
   protocol           = "HTTP"
   load_balancer_type = "application"
   internal           = false

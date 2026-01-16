@@ -247,10 +247,12 @@ variable "network_mode" {
   type        = string
   default     = "awsvpc"
 }
-variable "enable_service_discovery" {
-  description = "Enable Cloud Map service discovery for this ECS service"
-  type        = bool
-  default     = false
+
+variable "container_name" {
+  type = string
+}
+variable "container_port" {
+  type = number
 }
 
 variable "service_discovery_namespace_id" {
@@ -259,11 +261,10 @@ variable "service_discovery_namespace_id" {
   default     = null
 }
 
-variable "container_name" {
-  type = string
-}
-variable "container_port" {
-  type = number
+variable "enable_service_discovery" {
+  description = "Enable Cloud Map service discovery for this ECS service"
+  type        = bool
+  default     = false
 }
 variable "service_discovery_dns_record_type" {
   description = "Type of DNS record for Service Discovery"

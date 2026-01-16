@@ -15,6 +15,7 @@ and production-ready.
 -   Per-service security groups & IAM
 -   CloudWatch logging
 -   Environment-based `tfvars`
+-   AWS Cloud Map service discovery to enable private, DNS-based communication between ECS services
 
 ------------------------------------------------------------------------
 
@@ -79,6 +80,8 @@ vpc
 | `private_subnet_cidrs`    | list(string) | CIDR blocks for private subnets     |               
 | `cidr_block`              | string       | Allowed CIDR for routing / SG rules |
 | `domain`                  | string       | Domain label for VPC resources      |
+| `map_public_ip_on_launch` | bool         | Assign public IPs to instances      |
+| `service_discovery_name` | string        | Namespcae name to use for service discovery     |
 | `map_public_ip_on_launch` | bool         | Assign public IPs to instances      |
 | `dns_host_name`           | bool         | Enable DNS hostnames                |
 | `enable_dns_support`      | bool         | Enable DNS support                  |
@@ -189,44 +192,53 @@ cluster
 
 service
 -------------------------------------------------------------------------------------------------------
-| Variable                             | Type         | Purpose                                        |
-| ------------------------------------ | ------------ | ---------------------------------------------- |
-| `name`                               | string       | ECS service name                               |
-| `cluster_arn`                        | string       | ARN of the ECS cluster                         |
-| `launch_type`                        | string       | Launch type (`EC2`, `FARGATE`, `EXTERNAL`)     |
-| `desired_count`                      | number       | Number of running tasks                        |
-| `platform_version`                   | string       | Fargate platform version                       |
-| `scheduling_strategy`                | string       | Scheduling strategy (`REPLICA` or `DAEMON`)    |
-| `force_new_deployment`               | bool         | Force new deployment on updates                |
-| `deployment_maximum_percent`         | number       | Max percent of running tasks during deployment |
-| `deployment_minimum_healthy_percent` | number       | Min healthy percent during deployment          |
-| `availability_zone_rebalancing`      | string       | Enable or disable AZ rebalancing               |
-| `capacity_provider_strategy`         | map(object)  | Capacity provider strategy configuration       |
-| `alarms`                             | object       | CloudWatch alarm configuration                 |
-| `ignore_task_definition_changes`     | bool         | Ignore task definition changes                 |
-| `wait_for_steady_state`              | bool         | Wait until service reaches steady state        |
-| `triggers`                           | map(string)  | Redeployment triggers                          |
-| `propagate_tags`                     | string       | Propagate tags to tasks                        |
-| `enable_execute_command`             | bool         | Enable ECS Exec                                |
-| `assign_public_ip`                   | bool         | Assign public IP (Fargate only)                |
-| `subnet_ids`                         | list(string) | Subnets for service networking                 |
-| `security_group_ids`                 | list(string) | Existing security groups                       |
-| `vpc_id`                             | string       | VPC ID for the service                         |
-| `network_mode`                       | string       | Network mode (`awsvpc`, etc.)                  |
-| `load_balancer`                      | object       | Load balancer attachment configuration         |
-| `task_definition_arn`                | string       | Existing task definition ARN                   |
-| `create_task_definition`             | bool         | Whether to create a task definition            |
-| `container_definitions`              | any          | Container definitions JSON                     |
-| `ephemeral_storage`                  | object       | Task ephemeral storage configuration           |
-| `service_tags`                       | map(string)  | Additional service-specific tags               |
-| `tags`                               | map(string)  | Common tags applied to all resources           |
-| `create_security_group`              | bool         | Whether to create a service security group     |
-| `security_group_name`                | string       | Name of the created security group             |
-| `security_group_use_name_prefix`     | bool         | Use name prefix for security group             |
-| `security_group_description`         | string       | Security group description                     |
-| `security_group_ingress_rules`       | map(object)  | Ingress rules for service SG                   |
-| `security_group_egress_rules`        | map(object)  | Egress rules for service SG                    |
-| `security_group_tags`                | map(string)  | Tags for the service security group            |
+| Variable                             | Type         | Purpose                                               |
+| ------------------------------------ | ------------ | ----------------------------------------------------- |
+| `name`                               | string       | ECS service name                                      |
+| `cluster_arn`                        | string       | ARN of the ECS cluster                                |
+| `launch_type`                        | string       | Launch type (`EC2`, `FARGATE`, `EXTERNAL`)            |
+| `desired_count`                      | number       | Number of running tasks                               |
+| `platform_version`                   | string       | Fargate platform version                              |
+| `scheduling_strategy`                | string       | Scheduling strategy (`REPLICA` or `DAEMON`)           |
+| `force_new_deployment`               | bool         | Force new deployment on updates                       |
+| `deployment_maximum_percent`         | number       | Max percent of running tasks during deployment        |
+| `deployment_minimum_healthy_percent` | number       | Min healthy percent during deployment                 |
+| `availability_zone_rebalancing`      | string       | Enable or disable AZ rebalancing                      |
+| `capacity_provider_strategy`         | map(object)  | Capacity provider strategy configuration              |
+| `alarms`                             | object       | CloudWatch alarm configuration                        |
+| `ignore_task_definition_changes`     | bool         | Ignore task definition changes                        |
+| `wait_for_steady_state`              | bool         | Wait until service reaches steady state               |
+| `triggers`                           | map(string)  | Redeployment triggers                                 |
+| `propagate_tags`                     | string       | Propagate tags to tasks                               |
+| `enable_execute_command`             | bool         | Enable ECS Exec                                       |
+| `assign_public_ip`                   | bool         | Assign public IP (Fargate only)                       |
+| `subnet_ids`                         | list(string) | Subnets for service networking                        |
+| `security_group_ids`                 | list(string) | Existing security groups                              |
+| `vpc_id`                             | string       | VPC ID for the service                                |
+| `network_mode`                       | string       | Network mode (`awsvpc`, etc.)                         |
+| `load_balancer`                      | object       | Load balancer attachment configuration                |
+| `launch_type`                      | string      |  `FARGTE` for serverless and `EC2` for managed infra              |
+| `task_definition_arn`                | string       | Existing task definition ARN                          |
+| `create_task_definition`             | bool         | Whether to create a task definition                   |
+| `container_definitions`              | any          | Container definitions JSON                            |
+| `ephemeral_storage`                  | object       | Task ephemeral storage configuration                  |
+| `service_tags`                       | map(string)  | Additional service-specific tags                      |
+| `tags`                               | map(string)  | Common tags applied to all resources                  |
+| `create_security_group`              | bool         | Whether to create a service security group            |
+| `security_group_name`                | string       | Name of the created security group                    |
+| `security_group_use_name_prefix`     | bool         | Use name prefix for security group                    |
+| `security_group_description`         | string       | Security group description                            |
+| `security_group_ingress_rules`       | map(object)  | Ingress rules for service SG                          |
+| `security_group_egress_rules`        | map(object)  | Egress rules for service SG                           |
+| `security_group_tags`                | map(string)  | Tags for the service security group                   |
+| `container_name`                     | string       | Container name exposed by the ECS service             |
+| `container_port`                     | number       | Container port exposed by the service                 |
+| `enable_service_discovery`           | bool         | Enable AWS Cloud Map service discovery                |
+| `service_discovery_namespace_id`     | string       | Cloud Map private DNS namespace ID                    |
+| `service_discovery_dns_record_type`  | string       | DNS record type for service discovery (`A` or `SRV`)  |
+| `service_discovery_dns_record_ttl`   | number       | TTL for Cloud Map DNS records                         |
+| `service_discovery_routing_policy`   | string       | Cloud Map routing policy (`MULTIVALUE` or `WEIGHTED`) |
+
 
 
 task_definition
@@ -375,8 +387,9 @@ ecs_ec2_capacity = {
 ## 🧪 Example: EC2-based ECS Services  (WordPress + MySQL) & Nginx
 
 This example deploys WordPress and MySQL in 1st service and Nginx on 2nd  using **EC2 launch
-type**, an **ALB with instance targets**, and `network_mode = host`.
+type**.
 ```
+
 vpc = {
   vpc_name                = "my-wordpress-vpc"
   vpc_cidr                = "10.0.0.0/24"
