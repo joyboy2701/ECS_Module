@@ -9,6 +9,7 @@ module "vpc" {
   map_public_ip_on_launch = var.vpc.map_public_ip_on_launch
   enable_dns_support      = var.vpc.enable_dns_support
   dns_host_name           = var.vpc.dns_host_name
+  service_discovery_name  = var.vpc.service_discovery_name
   tags                    = var.base_tags
 
 }
@@ -157,7 +158,13 @@ module "ecs_service" {
   service_tags                       = merge(var.base_tags, each.value.service_tags)
   launch_type                        = each.value.launch_type
   triggers                           = each.value.triggers
+  container_name                     = each.value.container_name
+  container_port                     = each.value.container_port
   wait_for_steady_state              = each.value.wait_for_steady_state
+  enable_service_discovery           = each.value.enable_service_discovery
+  service_discovery_dns_record_ttl   = each.value.service_discovery_dns_record_ttl
+  service_discovery_dns_record_type  = each.value.service_discovery_dns_record_type
+  service_discovery_routing_policy   = each.value.service_discovery_routing_policy
 
   # Networking
   assign_public_ip = each.value.assign_public_ip
@@ -167,25 +174,25 @@ module "ecs_service" {
   create_security_group       = each.value.create_security_group
   security_group_name         = each.value.security_group_name
   security_group_egress_rules = each.value.security_group_egress_rules
-
   security_group_ingress_rules = merge(
-  each.value.security_group_ingress_rules,
-  try({
-    lb_to_app = merge(
-      each.value.security_group_ingress_rules.lb_to_app,
-      {
-        referenced_security_group_id = module.load_balancer.sg_id
-      }
-    )
-  }, {})  # Return empty map if lb_to_app doesn't exist
-)
+    each.value.security_group_ingress_rules,
+    can(each.value.security_group_ingress_rules.lb_to_app) ? {
+      lb_to_app = merge(
+        each.value.security_group_ingress_rules.lb_to_app,
+        {
+          referenced_security_group_id = module.load_balancer.sg_id
+        }
+      )
+    } : {}
+  )
   security_group_tags = merge(var.base_tags, each.value.security_group_tags)
   load_balancer = each.value.load_balancer != null ? {
     target_group_arn = module.load_balancer.target_group_arns[each.key]
     container_name   = each.value.load_balancer.container_name
     container_port   = each.value.load_balancer.container_port
   } : null
-  task_definition_arn = module.task_definition[each.key].task_definition_arn
+  task_definition_arn            = module.task_definition[each.key].task_definition_arn
+  service_discovery_namespace_id = module.vpc.service_discovery_namespace_id
 
   tags = merge(var.base_tags, each.value.tags)
 }

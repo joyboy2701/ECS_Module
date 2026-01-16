@@ -1,18 +1,23 @@
 vpc = {
-  vpc_name                = "my-wordpress-vpc"
+  vpc_name                = "my-app-vpc"
   vpc_cidr                = "10.0.0.0/24"
   public_subnet_cidrs     = ["10.0.0.0/26", "10.0.0.64/26"]
   private_subnet_cidrs    = ["10.0.0.128/26", "10.0.0.192/26"]
   cidr_block              = "0.0.0.0/0"
   domain                  = "vpc"
+  service_discovery_name  = "service.local"
   map_public_ip_on_launch = true
   enable_dns_support      = true
   dns_host_name           = true
 }
+base_tags = {
+  Environment = "dev"
+  ManagedBy   = "Terraform"
+}
 cluster = {
   name = "ecs-cluster"
   tags = {
-    Project = "wordpress-app"
+    Project = "api-worker-app"
   }
   setting = [
     {
@@ -26,8 +31,9 @@ cluster = {
   cloudwatch_log_group_class             = "STANDARD"
   cloudwatch_log_group_kms_key_id        = "alias/cloud_watch"
 }
+
 load_balancer = {
-  name               = "my-alb"
+  name               = "api-alb"
   protocol           = "HTTP"
   load_balancer_type = "application"
   internal           = false
@@ -53,13 +59,13 @@ load_balancer = {
   ]
 
   target_groups = {
-    wordpress = {
-      name        = "wordpress-tg"
+    api = {
+      name        = "api-tg"
       port        = 80
       protocol    = "HTTP"
       target_type = "ip"
-      health_check = { # ← CORRECT: health_check object
-        path                = "/wp-login.php"
+      health_check = {
+        path                = "/health"
         matcher             = "200-399"
         interval            = 30
         timeout             = 5
@@ -68,21 +74,24 @@ load_balancer = {
       }
     }
   }
+
   listeners = {
     http = {
       port             = 80
       protocol         = "HTTP"
-      target_group_key = "wordpress" # Default routing
-    },
+      target_group_key = "api"
+    }
   }
+
   tags = {
-    Application = "myapp"
+    Application = "api-worker-app"
   }
 }
 service = {
-  wordpress = {
-    name          = "wordpress-service"
+  api = {
+    name          = "api-service"
     desired_count = 1
+    launch_type   = "FARGATE"
 
     platform_version                   = "LATEST"
     deployment_maximum_percent         = 200
@@ -91,199 +100,121 @@ service = {
     propagate_tags                     = "SERVICE"
     wait_for_steady_state              = false
 
-    assign_public_ip = true
-
+    assign_public_ip = false # Private subnet
     load_balancer = {
-
-      container_name = "wordpress"
+      container_name = "api"
       container_port = 80
-
     }
-    create_security_group          = true
-    security_group_name            = "wordpress-sg"
-    security_group_use_name_prefix = true
-    security_group_description     = "ECS service SG"
+
+    create_security_group      = true
+    security_group_name        = "api-sg"
+    security_group_description = "ECS API SG"
     security_group_ingress_rules = {
-      http = { cidr_ipv4 = "10.0.0.0/24", from_port = 80, to_port = 80, ip_protocol = "tcp" },
+      # Allow ALB to reach API
       lb_to_app = {
         from_port   = 80
         to_port     = 80
         ip_protocol = "tcp"
-        description = "Load balancer to app"
-      },
+        description = "ALB to API"
+      }
     }
     security_group_egress_rules = {
       all = { cidr_ipv4 = "0.0.0.0/0", ip_protocol = "-1" }
     }
-    security_group_tags = { Description = "custom service sg for every service" }
-  }
-  mysql = {
-    name          = "mysql-service"
-    desired_count = 1
 
+  }
+
+  worker = {
+    name                               = "worker-service"
+    desired_count                      = 1
+    launch_type                        = "EC2"
     platform_version                   = "LATEST"
     deployment_maximum_percent         = 200
     deployment_minimum_healthy_percent = 100
     scheduling_strategy                = "REPLICA"
     propagate_tags                     = "SERVICE"
     wait_for_steady_state              = false
-    launch_type                        = "EC2"
+    enable_service_discovery           = true
 
-    assign_public_ip = false
-
-    create_security_group          = true
-    security_group_name            = "mysql-sg"
-    security_group_use_name_prefix = true
-    security_group_description     = "ECS service SG"
+    assign_public_ip           = false # Private subnet
+    create_security_group      = true
+    security_group_name        = "worker-sg"
+    security_group_description = "ECS Worker SG"
     security_group_ingress_rules = {
-      http = { cidr_ipv4 = "10.0.0.0/24", from_port = 3306, to_port = 3306, ip_protocol = "tcp" },
-      
+      http = { cidr_ipv4 = "10.0.0.0/24", from_port = 8080, to_port = 8080, ip_protocol = "tcp" },
     }
     security_group_egress_rules = {
       all = { cidr_ipv4 = "0.0.0.0/0", ip_protocol = "-1" }
     }
-    security_group_tags = { Description = "custom service sg for every service" }
-  }
 
-  
+  }
 }
-base_tags = {
-  Environment = "dev"
-  ManagedBy   = "Terraform"
-}
+
 task_definition = {
-  wordpress = {
-    family                   = "wordpress"
-    cpu                      = 1024
-    memory                   = 2048
+  api = {
+    family                   = "api"
+    cpu                      = 512
+    memory                   = 1024
     network_mode             = "awsvpc"
     task_execution_role_name = "ecsTaskExecutionRole"
-    task_exec_role_policies = {
-      secrets = "SecretsManagerReadWrite"
-    }
-    create_tasks_role = true
-    task_role_name    = "my-app-task-role"
-
-    task_role_statements = [
-      {
-        actions   = ["s3:GetObject", "s3:PutObject"]
-        resources = ["arn:aws:s3:::my-data-bucket/*"]
-        effect    = "Allow"
-      },
-    ]
-    ephemeral_storage = {
-      size_in_gib = 21
-    }
+    create_tasks_role        = false
 
     container_definitions = {
-      wordpress = {
-        image     = "wordpress:latest"
-        cpu       = 256
-        memory    = 512
-        essential = true
-
-        portMappings = [{
-          containerPort = 80
-          protocol      = "tcp"
-        }]
-        enable_cloudwatch_logging              = true # This is the key switch!
+      api = {
+        image                                  = "569023477847.dkr.ecr.us-east-1.amazonaws.com/upload-api:1.1"
+        cpu                                    = 256
+        memory                                 = 512
+        essential                              = true
+        portMappings                           = [{ containerPort = 80, protocol = "tcp" }]
+        enable_cloudwatch_logging              = true
         create_cloudwatch_log_group            = true
-        cloudwatch_log_group_name              = "/ecs/wordpress"
-        cloudwatch_log_group_use_name_prefix   = false
-        cloudwatch_log_group_class             = "STANDARD"
+        cloudwatch_log_group_name              = "/ecs/api"
         cloudwatch_log_group_retention_in_days = 14
-
-        healthCheck = {
-          command = ["CMD-SHELL",
-          "curl -f http://localhost/wp-login.php || exit 1"]
-          interval    = 30
-          timeout     = 5
-          retries     = 3
-          startPeriod = 120
-        }
-        secrets = [
-          {
-            name      = "WORDPRESS_DB_USER"
-            valueFrom = "wordpress/mysql:username::"
-          },
-          {
-            name      = "WORDPRESS_DB_PASSWORD"
-            valueFrom = "wordpress/mysql:password::"
-          },
-          {
-            name      = "WORDPRESS_DB_NAME"
-            valueFrom = "wordpress/mysql:database::"
-          }
-        ]
-
-
         environment = [
-          { name = "WORDPRESS_DB_HOST", value = "10.0.0.200:3306" },
+          {
+            name  = "STORAGE_SERVICE_URL"
+            value = "http://worker-service.service.local:8080"
+          }
         ]
       }
-
-      
     }
-
   }
-  mysql = {
-    family       = "mysql"
-    cpu          = 1024
-    memory       = 2048
-    network_mode = "awsvpc"
 
-    task_execution_role_name = "ecsTaskExecutionRole_mysql"
+  worker = {
+    family                   = "worker"
+    cpu                      = 512
+    memory                   = 1024
+    network_mode             = "awsvpc"
+    task_execution_role_name = "ecsTaskExecutionRole_worker"
     create_tasks_role        = false
-     task_exec_role_policies = {
-      secrets = "SecretsManagerReadWrite"
-    }
+
     container_definitions = {
-      mysql = {
-        image     = "mysql:8.0"
+      worker = {
+        image     = "569023477847.dkr.ecr.us-east-1.amazonaws.com/storage-service:1.1"
         cpu       = 256
         memory    = 512
         essential = true
-
         portMappings = [{
-          containerPort = 3306
+          containerPort = 8080
           protocol      = "tcp"
         }]
-        enable_cloudwatch_logging              = true # This is the key switch!
+
+        enable_cloudwatch_logging              = true
         create_cloudwatch_log_group            = true
-        cloudwatch_log_group_name              = "/ecs/mysql"
-        cloudwatch_log_group_use_name_prefix   = false
-        cloudwatch_log_group_class             = "STANDARD"
+        cloudwatch_log_group_name              = "/ecs/worker"
         cloudwatch_log_group_retention_in_days = 14
         healthCheck = {
-          command     = ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD"]
+          command     = ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
           interval    = 30
           timeout     = 5
           retries     = 3
-          startPeriod = 60
+          startPeriod = 10
         }
-
-        secrets = [
-          {
-            name      = "MYSQL_USER"
-            valueFrom = "wordpress/mysql:username::"
-          },
-          {
-            name      = "MYSQL_PASSWORD"
-            valueFrom = "wordpress/mysql:password::"
-          },
-          {
-            name      = "MYSQL_DATABASE"
-            valueFrom = "wordpress/mysql:database::"
-          },
-          {
-            name      = "MYSQL_ROOT_PASSWORD"
-            valueFrom = "wordpress/mysql:root_password::"
-          }
-        ]
       }
     }
   }
 }
+
 
 
 ecs_ec2_capacity = {
@@ -295,15 +226,8 @@ ecs_ec2_capacity = {
   security_group_rules = [
     {
       type       = "ingress"
-      from_port  = 80
-      to_port    = 80
-      protocol   = "tcp"
-      cidr_block = ["10.0.0.0/24"]
-    },
-    {
-      type       = "ingress"
-      from_port  = 3306
-      to_port    = 3306
+      from_port  = 8080
+      to_port    = 8080
       protocol   = "tcp"
       cidr_block = ["10.0.0.0/24"]
     },
@@ -317,10 +241,9 @@ ecs_ec2_capacity = {
   ]
 
   min_size         = 1
-  max_size         = 4
+  max_size         = 3
   desired_capacity = 1
-
-  instance_type = "t2.medium"
+  instance_type    = "t2.medium"
 
   create_iam_instance_profile = true
   iam_role_name               = "ecs-ec2-role"
@@ -329,13 +252,7 @@ ecs_ec2_capacity = {
     ssm = "AmazonSSMManagedInstanceCore"
   }
 
-  managed_scaling_status         = "ENABLED"
-  target_capacity                = 100
-  minimum_scaling_step_size      = 1
-  maximum_scaling_step_size      = 4
-  managed_termination_protection = "ENABLED"
-
-  tags = {
-    Owner = "platform-team"
-  }
+  managed_scaling_status = "ENABLED"
+  target_capacity        = 100
+  tags                   = { Owner = "platform-team" }
 }

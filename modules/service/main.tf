@@ -19,6 +19,25 @@ locals {
     )
   }
 }
+resource "aws_service_discovery_service" "this" {
+  count = var.enable_service_discovery ? 1 : 0
+
+  name = var.name
+
+  dns_config {
+    namespace_id = var.service_discovery_namespace_id
+
+    dns_records {
+      type = var.service_discovery_dns_record_type
+      ttl  = var.service_discovery_dns_record_ttl
+    }
+
+    routing_policy = var.service_discovery_routing_policy
+  }
+
+  tags = var.tags
+}
+
 resource "aws_ecs_service" "this" {
   count = !var.ignore_task_definition_changes ? 1 : 0
 
@@ -31,7 +50,16 @@ resource "aws_ecs_service" "this" {
       rollback    = alarms.value.rollback
     }
   }
-  
+
+  dynamic "service_registries" {
+    for_each = var.enable_service_discovery ? [1] : []
+    content {
+      registry_arn   = aws_service_discovery_service.this[0].arn
+      container_name = upper(var.launch_type) == "FARGATE" ? var.container_name : null
+      container_port = upper(var.launch_type) == "FARGATE" ? var.container_port : null
+    }
+  }
+
 
   availability_zone_rebalancing = var.availability_zone_rebalancing
 

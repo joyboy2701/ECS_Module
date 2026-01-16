@@ -17,3 +17,6 @@ output "vpc_cidr" {
   description = "VPC CIDR block"
   value       = aws_vpc.main.cidr_block
 }
+output "service_discovery_namespace_id" {
+  value = aws_service_discovery_private_dns_namespace.this.id
+}

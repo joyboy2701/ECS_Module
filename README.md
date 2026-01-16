@@ -384,13 +384,14 @@ vpc = {
   private_subnet_cidrs    = ["10.0.0.128/26", "10.0.0.192/26"]
   cidr_block              = "0.0.0.0/0"
   domain                  = "vpc"
+  service_discovery_name  = "service.local"
   map_public_ip_on_launch = true
   enable_dns_support      = true
   dns_host_name           = true
 
 }
 cluster = {
-  name   = "ecs-cluster"
+  name = "ecs-cluster"
   tags = {
     Project = "wordpress-app"
   }
@@ -438,7 +439,7 @@ load_balancer = {
       name        = "wordpress-tg"
       port        = 80
       protocol    = "HTTP"
-      target_type = "instance"
+      target_type = "ip"
       health_check = { # ← CORRECT: health_check object
         path                = "/wp-login.php"
         matcher             = "200-399"
@@ -452,7 +453,7 @@ load_balancer = {
       name        = "nginx-tg"
       port        = 8080
       protocol    = "HTTP"
-      target_type = "instance"
+      target_type = "ip"
       health_check = {
         path                = "/"
         matcher             = "200-399"
@@ -482,18 +483,17 @@ load_balancer = {
     Application = "myapp"
   }
 }
-launch_type = "EC2"
 service = {
   wordpress = {
-    name           = "wordpress-service"
-    desired_count  = 1
-
+    name                               = "wordpress-service"
+    desired_count                      = 1
     platform_version                   = "LATEST"
     deployment_maximum_percent         = 200
     deployment_minimum_healthy_percent = 100
     scheduling_strategy                = "REPLICA"
     propagate_tags                     = "SERVICE"
     wait_for_steady_state              = false
+    launch_type                        = "EC2"
 
     assign_public_ip = false
 
@@ -524,8 +524,8 @@ service = {
   }
 
   nginx = {
-    name           = "nginx-service"
-    desired_count  = 1
+    name          = "nginx-service"
+    desired_count = 1
 
     platform_version                   = "LATEST"
     deployment_maximum_percent         = 200
@@ -533,6 +533,7 @@ service = {
     scheduling_strategy                = "REPLICA"
     propagate_tags                     = "SERVICE"
     wait_for_steady_state              = false
+    launch_type                        = "EC2"
 
     assign_public_ip = false
 
@@ -577,10 +578,10 @@ task_definition = {
     family                   = "wordpress"
     cpu                      = 1024
     memory                   = 2048
-    network_mode             = "host"
+    network_mode             = "awsvpc"
     task_execution_role_name = "ecsTaskExecutionRole"
     task_exec_role_policies = {
-      secrets = "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
+      secrets = "SecretsManagerReadWrite"
     }
     create_tasks_role = true
     task_role_name    = "my-app-task-role"
@@ -623,7 +624,7 @@ task_definition = {
           startPeriod = 120
         }
 
-       secrets = [
+        secrets = [
           {
             name      = "WORDPRESS_DB_USER"
             valueFrom = "wordpress/mysql:username::"
@@ -695,7 +696,7 @@ task_definition = {
     family                 = "nginx"
     cpu                    = 1024
     memory                 = 2048
-    network_mode           = "host"
+    network_mode           = "awsvpc"
 
     task_execution_role_name = "ecsTaskExecutionRole_nginx"
     create_tasks_role        = false
@@ -735,6 +736,7 @@ task_definition = {
     }
   }
 }
+
 ecs_ec2_capacity = {
   create          = true
   name            = "ecs-ec2-prod"

@@ -953,7 +953,7 @@ resource "aws_autoscaling_policy" "this" {
 }
 # IAM Role / Instance Profile
 data "aws_iam_policy" "iam_role_policies" {
- for_each = { for k, v in var.iam_role_policies : k => v if var.create && var.create_iam_instance_profile }
+  for_each = { for k, v in var.iam_role_policies : k => v if var.create && var.create_iam_instance_profile }
   name     = var.iam_role_policies[each.key]
 }
 resource "aws_iam_role" "this" {

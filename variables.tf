@@ -10,12 +10,9 @@ variable "vpc" {
     map_public_ip_on_launch = bool
     dns_host_name           = bool
     enable_dns_support      = bool
+    service_discovery_name  = string
   })
 }
-
-# variable "launch_type" {
-#   type = string
-# }
 variable "base_tags" {
   type = map(string)
 }
@@ -647,6 +644,8 @@ variable "service" {
     wait_for_steady_state              = optional(bool)
     enable_fault_injection             = optional(bool)
     launch_type                        = optional(string, "FARGATE")
+    container_name                     = optional(string)
+    container_port                     = optional(number)
 
     # Networking
     assign_public_ip   = optional(bool)
@@ -678,15 +677,19 @@ variable "service" {
     enable_execute_command  = optional(bool)
 
     # Security Group
-    create_security_group          = optional(bool)
-    vpc_id                         = optional(string)
-    security_group_name            = optional(string)
-    security_group_use_name_prefix = optional(bool)
-    security_group_description     = optional(string)
-    security_group_ingress_rules   = optional(map(any))
-    security_group_egress_rules    = optional(map(any))
-    security_group_tags            = optional(map(string))
-    cloudwatch_log_group_name      = optional(string)
+    create_security_group             = optional(bool)
+    vpc_id                            = optional(string)
+    security_group_name               = optional(string)
+    security_group_use_name_prefix    = optional(bool)
+    security_group_description        = optional(string)
+    security_group_ingress_rules      = optional(map(any))
+    security_group_egress_rules       = optional(map(any))
+    security_group_tags               = optional(map(string))
+    cloudwatch_log_group_name         = optional(string)
+    enable_service_discovery          = optional(bool, false)
+    service_discovery_dns_record_ttl  = optional(number, 10)
+    service_discovery_dns_record_type = optional(string, "A")
+    service_discovery_routing_policy  = optional(string, "MULTIVALUE")
 
     # Containers
     container_definitions = optional(any)

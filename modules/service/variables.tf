@@ -247,3 +247,38 @@ variable "network_mode" {
   type        = string
   default     = "awsvpc"
 }
+variable "enable_service_discovery" {
+  description = "Enable Cloud Map service discovery for this ECS service"
+  type        = bool
+  default     = false
+}
+
+variable "service_discovery_namespace_id" {
+  description = "Cloud Map private DNS namespace ID"
+  type        = string
+  default     = null
+}
+
+variable "container_name" {
+  type = string
+}
+variable "container_port" {
+  type = number
+}
+variable "service_discovery_dns_record_type" {
+  description = "Type of DNS record for Service Discovery"
+  type        = string
+  default     = "A"
+}
+
+variable "service_discovery_dns_record_ttl" {
+  description = "TTL for DNS records in Service Discovery"
+  type        = number
+  default     = 10
+}
+
+variable "service_discovery_routing_policy" {
+  description = "Routing policy for Service Discovery"
+  type        = string
+  default     = "MULTIVALUE"
+}

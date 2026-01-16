@@ -28,6 +28,10 @@ variable "domain" {
   description = "Domain for NAT Gateway"
   type        = string
 }
+variable "service_discovery_name" {
+
+  type = string
+}
 variable "dns_host_name" {
   description = "DNS host name enable/disable"
   type        = bool

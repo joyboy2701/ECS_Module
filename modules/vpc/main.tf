@@ -19,6 +19,11 @@ resource "aws_internet_gateway" "main" {
 
   }
 }
+resource "aws_service_discovery_private_dns_namespace" "this" {
+  name = var.service_discovery_name
+  vpc  = aws_vpc.main.id
+}
+
 
 # Public Subnets
 resource "aws_subnet" "public" {
