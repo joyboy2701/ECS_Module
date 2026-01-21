@@ -161,7 +161,7 @@ task_definition = {
 
     container_definitions = {
       api = {
-        image                                  = "569023477847.dkr.ecr.us-east-1.amazonaws.com/upload-api:1.1"
+        image                                  = "569023477847.dkr.ecr.us-east-1.amazonaws.com/upload-api:latest"
         cpu                                    = 256
         memory                                 = 512
         essential                              = true
@@ -190,7 +190,7 @@ task_definition = {
 
     container_definitions = {
       worker = {
-        image     = "569023477847.dkr.ecr.us-east-1.amazonaws.com/storage-service:1.1"
+        image     = "569023477847.dkr.ecr.us-east-1.amazonaws.com/storage-service:latest"
         cpu       = 256
         memory    = 512
         essential = true
@@ -274,4 +274,14 @@ oidc = {
     "ecs:RegisterTaskDefinition"
   ]
   github_thumbprint = "6938fd4d98bab03faadb97b34396831e3780aea1"
+}
+ecr_repositories = {
+  api = {
+    name                 = "upload-api"
+  }
+
+  worker = {
+    name            = "storage-service"
+    scan_on_push    = false
+  }
 }

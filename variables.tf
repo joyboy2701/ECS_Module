@@ -844,4 +844,14 @@ variable "oidc" {
     github_thumbprint  = optional(string)
   })
 }
-
+variable "ecr_repositories" {
+  description = "ECR repositories configuration"
+  type = map(object({
+    name                 = string
+    image_tag_mutability = optional(string, "MUTABLE")
+    scan_on_push         = optional(bool, true)
+    encryption_type      = optional(string, "AES256")
+    kms_key              = optional(string)
+    tags                 = optional(map(string), {})
+  }))
+}

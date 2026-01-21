@@ -248,3 +248,15 @@ module "oidc" {
   policy_actions          = lookup(var.oidc, "policy_actions", null)
   github_thumbprint       = lookup(var.oidc, "github_thumbprint", null)
 }
+
+module "ecr" {
+  source   = "./modules/ecr"
+  for_each = var.ecr_repositories
+
+  name                 = each.value.name
+  image_tag_mutability = each.value.image_tag_mutability
+  scan_on_push         = each.value.scan_on_push
+  encryption_type      = each.value.encryption_type
+  kms_key              = each.value.kms_key
+  tags                 = each.value.tags
+}
