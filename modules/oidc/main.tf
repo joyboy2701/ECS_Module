@@ -1,4 +1,13 @@
-
+locals {
+  # Generate the subject patterns for all repositories
+  github_subjects = flatten([
+    for repo in var.github_repo : [
+      "repo:${repo}:ref:refs/heads/*",
+      "repo:${repo}:ref:refs/tags/*",
+      "repo:${repo}:pull_request"
+    ]
+  ])
+}
 resource "aws_iam_openid_connect_provider" "github" {
   url             = "https://token.actions.githubusercontent.com"
   client_id_list  = ["sts.amazonaws.com"]
@@ -22,7 +31,7 @@ resource "aws_iam_role" "github_actions_role" {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:*"
+            "token.actions.githubusercontent.com:sub" = local.github_subjects
           }
         }
       }

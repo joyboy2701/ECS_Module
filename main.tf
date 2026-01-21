@@ -242,7 +242,7 @@ module "task_definition" {
 module "oidc" {
   source                  = "./modules/oidc"
   role_name               = var.oidc.role_name
-  github_repo             = var.oidc.github_repo
+  github_repo             = var.oidc.github_repos
   policy_name             = var.oidc.policy_name
   policy_description      = var.oidc.policy_description
   policy_actions          = lookup(var.oidc, "policy_actions", null)

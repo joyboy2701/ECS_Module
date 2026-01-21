@@ -837,7 +837,7 @@ variable "oidc" {
   description = "Configuration for GitHub Actions IAM"
   type = object({
     role_name          = string
-    github_repo        = string
+    github_repos       = list(string)  # Change from string to list
     policy_name        = string
     policy_description = string
     policy_actions     = optional(list(string))
