@@ -833,3 +833,15 @@ variable "task_definition" {
 
   default = null
 }
+variable "oidc" {
+  description = "Configuration for GitHub Actions IAM"
+  type = object({
+    role_name          = string
+    github_repo        = string
+    policy_name        = string
+    policy_description = string
+    policy_actions     = optional(list(string))
+    github_thumbprint  = optional(string)
+  })
+}
+

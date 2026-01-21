@@ -256,3 +256,22 @@ ecs_ec2_capacity = {
   target_capacity        = 100
   tags                   = { Owner = "platform-team" }
 }
+oidc = {
+  role_name          = "my-github-actions-role"
+  github_repo        = "joyboy2701/ecs-python-app"
+  policy_name        = "MyGithubActionsPolicy"
+  policy_description = "GitHub Actions permissions for ECS & ECR"
+  policy_actions    = [
+    "ecr:GetAuthorizationToken",
+    "ecr:BatchCheckLayerAvailability",
+    "ecr:PutImage",
+    "ecr:InitiateLayerUpload",
+    "ecr:UploadLayerPart",
+    "ecr:CompleteLayerUpload",
+    "ecs:UpdateService",
+    "ecs:DescribeServices",
+    "ecs:DescribeTaskDefinition",
+    "ecs:RegisterTaskDefinition"
+  ]
+  github_thumbprint = "6938fd4d98bab03faadb97b34396831e3780aea1"
+}
