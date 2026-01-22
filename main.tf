@@ -258,5 +258,6 @@ module "ecr" {
   scan_on_push         = each.value.scan_on_push
   encryption_type      = each.value.encryption_type
   kms_key              = each.value.kms_key
+  force_delete         = each.value.force_delete
   tags                 = each.value.tags
 }

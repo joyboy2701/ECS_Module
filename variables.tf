@@ -852,6 +852,7 @@ variable "ecr_repositories" {
     scan_on_push         = optional(bool, true)
     encryption_type      = optional(string, "AES256")
     kms_key              = optional(string)
+    force_delete         = optional(bool, true)
     tags                 = optional(map(string), {})
   }))
 }
