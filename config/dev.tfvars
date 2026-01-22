@@ -282,6 +282,5 @@ ecr_repositories = {
 
   worker = {
     name            = "storage-service"
-    scan_on_push    = false
   }
 }

@@ -1,5 +1,4 @@
 locals {
-  # Generate the subject patterns for all repositories
   github_subjects = flatten([
     for repo in var.github_repo : [
       "repo:${repo}:ref:refs/heads/*",
