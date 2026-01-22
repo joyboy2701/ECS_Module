@@ -36,16 +36,25 @@ and production-ready.
 │   │   ├── main.tf
 │   │   ├── outputs.tf
 │   │   └── variable.tf
+│   ├── ecr
+│   │   ├── main.tf
+│   │   ├── outputs.tf
+│   │   └── variable.tf
 │   ├── load-balancer
 │   │   ├── main.tf
 │   │   ├── outputs.tf
 │   │   └── variables.tf
+│   ├── oidc
+│   │   ├── main.tf
+│   │   ├── outputs.tf
+│   │   └── variable.tf
 │   ├── service
 │   │   ├── main.tf
 │   │   ├── outputs.tf
 │   │   └── variables.tf
 │   ├── task-definition
 │   │   ├── data.tf
+│   │   ├── locals.tf
 │   │   ├── main.tf
 │   │   ├── outputs.tf
 │   │   └── variables.tf
@@ -303,6 +312,29 @@ task_definition
 | `tags`                                                         | map(string)       | Common resource tags                       |
 | `task_tags`                                                    | map(string)       | Additional task definition tags            |
 
+oidc
+------------------------------------------------------------------------------------------------
+| Variable Name        | Type         | Purpose                                                |
+| -------------------- | ------------ | ------------------------------------------------------ |
+| `role_name`          | string       | Name of the IAM role to be assumed by GitHub Actions   |
+| `github_repos`       | list(string) | List of GitHub repositories allowed to assume the role |
+| `policy_name`        | string       | Name of the IAM policy attached to the role            |
+| `policy_description` | string       | Description of the IAM policy                          |
+| `policy_actions`     | list(string) | *(Optional)* IAM actions allowed by the policy         |
+| `github_thumbprint`  | string       | *(Optional)* Thumbprint for the GitHub OIDC provider   |
+
+ecr_repositories
+------------------------------------------------------------------------------------------------
+| Variable Name          | Type        | Purpose                                                    |
+| ---------------------- | ----------- | ---------------------------------------------------------- |
+| `ecr_repositories`     | map(object) | Map of ECR repository configurations                       |
+| `name`                 | string      | Name of the ECR repository                                 |
+| `image_tag_mutability` | string      | Whether image tags are `MUTABLE` or `IMMUTABLE`            |
+| `scan_on_push`         | bool        | Enable vulnerability scanning on image push                |
+| `encryption_type`      | string      | Encryption type for the repository (e.g., `AES256`, `KMS`) |
+| `kms_key`              | string      | KMS key ARN used if encryption type is `KMS`               |
+| `force_delete`         | bool        | Allow repository deletion even if images exist             |
+| `tags`                 | map(string) | Tags applied to the ECR repository                         |
 
 
 
