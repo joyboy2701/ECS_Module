@@ -26,6 +26,11 @@ variable "kms_key" {
   type        = string
   default     = null
 }
+variable "force_delete" {
+  description = "Force delete the repository even if it contains images"
+  type        = bool
+  default     = true
+}
 
 variable "tags" {
   description = "Tags for the ECR repository"

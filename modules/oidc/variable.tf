@@ -6,7 +6,7 @@ variable "role_name" {
 
 variable "github_repo" {
   description = "GitHub repository in format owner/repo"
-  type        = string
+  type        = list(string)
 }
 
 variable "policy_name" {

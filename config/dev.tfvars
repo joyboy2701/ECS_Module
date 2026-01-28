@@ -258,7 +258,7 @@ ecs_ec2_capacity = {
 }
 oidc = {
   role_name          = "my-github-actions-role"
-  github_repo        = "joyboy2701/ecs-python-app"
+  github_repos       = ["joyboy2701/ecs-python-app-backend","joyboy2701/ecs-python-app-frontend"]
   policy_name        = "MyGithubActionsPolicy"
   policy_description = "GitHub Actions permissions for ECS & ECR"
   policy_actions    = [
@@ -282,6 +282,5 @@ ecr_repositories = {
 
   worker = {
     name            = "storage-service"
-    scan_on_push    = false
   }
 }
